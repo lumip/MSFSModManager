@@ -7,8 +7,8 @@ namespace MSFSModManager.Core.PackageSources
         
     public interface IPackageSource : IJsonSerializable
     {
-        Task<PackageManifest> GetPackageManifest(IProgressMonitor? monitor = null);
-        Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IProgressMonitor? monitor = null);
+        Task<PackageManifest> GetPackageManifest(IVersionNumber gameVersion, IProgressMonitor? monitor = null);
+        Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor = null);
 
         IPackageInstaller GetInstaller(VersionNumber versionNumber);
 

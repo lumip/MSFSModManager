@@ -15,6 +15,7 @@ namespace MSFSModManager.Core
         public static async Task<IEnumerable<PackageManifest>> ResolveDependencies(
             IEnumerable<PackageDependency> installationCandidates, 
             IPackageSourceRepository packageSources,
+            IVersionNumber gameVersion,
             IProgressMonitor? monitor = null
         )
         {
@@ -44,7 +45,7 @@ namespace MSFSModManager.Core
 
                 try
                 {
-                    PackageManifest manifest = await packageSources.GetSource(node.PackageId).GetPackageManifest(node.VersionBounds, monitor);
+                    PackageManifest manifest = await packageSources.GetSource(node.PackageId).GetPackageManifest(node.VersionBounds, gameVersion, monitor);
 
                     string parentsString = String.Join(", ", node.Parents.Select(p => $"{p.PackageId} {p.ActualizedVersion}"));
                     GlobalLogger.Log(LogLevel.Info, $"Resolved package {manifest.Id} as {manifest.Version} (from {parentsString})");
@@ -85,7 +86,7 @@ namespace MSFSModManager.Core
                         VersionBounds bounds = parent.ActualizedManifest.Dependencies.Where(d => d.Id == node.PackageId).First().VersionBounds;
                         try
                         {
-                            await packageSources.GetSource(node.PackageId).GetPackageManifest(node.VersionBounds, monitor);
+                            await packageSources.GetSource(node.PackageId).GetPackageManifest(node.VersionBounds, gameVersion, monitor);
                         }
                         catch (VersionNotAvailableException)
                         {

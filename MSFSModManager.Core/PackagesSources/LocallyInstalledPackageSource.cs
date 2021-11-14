@@ -23,7 +23,7 @@ namespace MSFSModManager.Core.PackageSources
             return new NoOpPackageInstaller(_installedPackage.Id);
         }
 
-        public override Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IProgressMonitor? monitor)
+        public override Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor)
         {
             PackageManifest manifest = _installedPackage.Manifest!;
             if (versionBounds.CheckVersion(manifest.Version))

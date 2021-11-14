@@ -39,28 +39,35 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         public override IPackageInstaller GetInstaller(VersionNumber versionNumber)
         {
-            GlobalLogger.Log(LogLevel.Warning, "Sourcing from github branch does not check version bounds, will use latest commit!");
+            GlobalLogger.Log(LogLevel.Warning, "Installing from github branch does not check version bounds, will install latest commit!");
             string commitSha = FetchCommits().Result.First();
 
             throw new NotImplementedException(); // todo!
         }
 
-        public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IProgressMonitor? monitor = null)
+        public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor = null)
         {
             GlobalLogger.Log(LogLevel.Warning, "Sourcing from github branch does not check version bounds, will use latest commit!");
 
             string commitSha = (await FetchCommits()).First();
             string rawManifest = await GithubAPI.GetManifestString(_repository, commitSha);
+            PackageManifest manifest;
             try
             {
-                PackageManifest manifest = PackageManifest.Parse(_packageId, rawManifest);
-                return manifest;
+                manifest = PackageManifest.Parse(_packageId, rawManifest);
             }
-            catch (ArgumentException e)
+            catch (ArgumentException)
             {
                 GlobalLogger.Log(LogLevel.CriticalError, $"Manifest for {_packageId} github commit {commitSha} does not provide a version number.");
-                throw e;
+                throw new PackageNotAvailableException(_packageId);
             }
+
+            if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
+            {
+                GlobalLogger.Log(LogLevel.Info, $"{_packageId} branch {_branch} (latest commit: {commitSha} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
+                throw new PackageNotAvailableException(_packageId);
+            }
+            return manifest;
         }
 
         public override string ToString()

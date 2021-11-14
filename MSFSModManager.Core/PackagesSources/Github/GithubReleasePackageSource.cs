@@ -115,11 +115,11 @@ namespace MSFSModManager.Core.PackageSources.Github
             throw new FileNotFoundException();
         }
 
-        public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IProgressMonitor? monitor)
+        public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor)
         {
             foreach (VersionNumber cachedVersion in _releaseCache.Keys)
             {
-                if (versionBounds.CheckVersion(cachedVersion))
+                if (versionBounds.CheckVersion(cachedVersion) && gameVersion.CompareTo(_releaseCache[cachedVersion].Manifest.MinimumGameVersion) >= 0)
                 {
                     return _releaseCache[cachedVersion].Manifest;
                 }
@@ -148,6 +148,14 @@ namespace MSFSModManager.Core.PackageSources.Github
                     {
                         string rawManifest = await GithubAPI.GetManifestString(_repository, commitSha);
                         PackageManifest manifest = PackageManifest.Parse(_packageId, rawManifest, releaseVersion);
+
+                        if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
+                        {
+                            GlobalLogger.Log(LogLevel.Info, $"{_packageId} v{releaseVersion} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
+                            continue;
+                        }
+
+                        _releaseCache.Add(releaseVersion, new CachedRelease(manifest, release.DownloadUrl));
                         return manifest;
                     }
                     catch (FileNotFoundException)
@@ -165,6 +173,12 @@ namespace MSFSModManager.Core.PackageSources.Github
                         }
                         string manifestFilePath = LocateManifest(packageFolder);
                         PackageManifest manifest = PackageManifest.FromFile(_packageId, manifestFilePath);
+
+                        if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
+                        {
+                            GlobalLogger.Log(LogLevel.Info, $"{_packageId} v{releaseVersion} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
+                            continue;
+                        }
 
                         _releaseCache.Add(releaseVersion, new CachedRelease(manifest, release.DownloadUrl));
                         return manifest;

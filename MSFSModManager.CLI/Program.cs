@@ -22,7 +22,8 @@ namespace MSFSModManager.CLI
             Success = 0,
             ModeError = 1,
             ArgumentError = 2,
-            NoPackageSource = 3
+            NoPackageSource = 3,
+            UnknownError = 4
         }
 
         static (Dictionary<string, string>, HashSet<string>) ParseArguments(string[] args)
@@ -93,7 +94,7 @@ namespace MSFSModManager.CLI
             }
             catch (Exception)
             {
-                GlobalLogger.Log(LogLevel.Error, "Could not detect game version!");
+                GlobalLogger.Log(LogLevel.Error, "Could not detect game version, assuming latest!");
             }
 
             
@@ -268,9 +269,31 @@ namespace MSFSModManager.CLI
             IPackageSourceRepository source = new HiddenBasePackageSourceRepositoryDecorator(new PackageDatabaseSource(database));
             var monitor = new ConsoleProgressMonitor();
 
-            IEnumerable<PackageManifest> toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, monitor).Result
-                .Where(m => !database.Contains(m.Id, new VersionBounds(m.Version)));
-
+            IEnumerable<PackageManifest> toInstall;
+            try
+            {
+                toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, gameVersion, monitor).Result
+                    .Where(m => !database.Contains(m.Id, new VersionBounds(m.Version)));
+            }
+            catch (AggregateException e)
+            {
+                Exception innerException = e.InnerException;
+                if (innerException is PackageNotAvailableException)
+                {
+                    GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: A source of a required package could not be found.");
+                }
+                else if (innerException is VersionNotAvailableException)
+                {
+                    GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: A suitable package version for a required package could not be found.");
+                }
+                else
+                {
+                    GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: Unknown error.");
+                }
+                GlobalLogger.Log(LogLevel.CriticalError, $"{innerException}");
+                return ReturnCode.UnknownError;
+            }
+            
 
             GlobalLogger.Log(LogLevel.Info, "Installing packages:");
             foreach (var package in toInstall)
@@ -351,7 +374,7 @@ namespace MSFSModManager.CLI
 
             var monitor = new ConsoleProgressMonitor();
 
-            IEnumerable<PackageManifest> toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, monitor).Result
+            IEnumerable<PackageManifest> toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, gameVersion, monitor).Result
                 .Where(m => !database.Contains(m.Id, new VersionBounds(m.Version)));
 
 

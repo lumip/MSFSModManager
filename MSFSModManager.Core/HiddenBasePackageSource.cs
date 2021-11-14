@@ -21,7 +21,7 @@ namespace MSFSModManager.Core
             throw new NotSupportedException("Installation of base packages not supported.");
         }
 
-        public override Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IProgressMonitor? monitor)
+        public override Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor)
         {
             VersionNumber? versionNumber = versionBounds.Lower as VersionNumber;
             if (versionNumber == null)
