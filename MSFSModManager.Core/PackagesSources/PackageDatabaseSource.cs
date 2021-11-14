@@ -1,0 +1,35 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+using System.Linq;
+
+namespace MSFSModManager.Core.PackageSources
+{
+    public class PackageDatabaseSource : IPackageSourceRepository
+    {
+
+        IPackageDatabase _database;
+
+        public PackageDatabaseSource(IPackageDatabase database)
+        {
+            _database = database;
+        }
+
+        public Task<IEnumerable<string>> ListAvailablePackages()
+        {
+            return Task.FromResult(
+                _database.CommunityPackages.Where(p => p.PackageSource != null).Select(p => p.Id)
+            );
+        }
+
+        public IPackageSource GetSource(string packageId)
+        {
+            InstalledPackage package = _database.GetInstalledPackage(packageId);
+            if (package.PackageSource == null)
+                return new LocallyInstalledPackageSource(package);
+            IPackageSource source = package.PackageSource;
+            return source;
+        }
+    }
+}
