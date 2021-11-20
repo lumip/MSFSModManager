@@ -10,15 +10,19 @@ namespace MSFSModManager.Core.PackageSources.Github
         {
             if (serialized == null) return new DefaultArtifactSelector();
 
-            string type = (string)serialized["type"];
+            if (!serialized.ContainsKey("type")) throw new Parsing.JsonParsingException("JSON did not contain ArtifactSelector type.");
+            if (!serialized.ContainsKey("data")) throw new Parsing.JsonParsingException("JSON did not contain ArtifactSelector data.");
+        
+            string type = (string)serialized["type"]!;
+
             switch (type)
             {
                 case "default":
-                    return DefaultArtifactSelector.Deserialize(serialized["data"]);
+                    return DefaultArtifactSelector.Deserialize(serialized["data"]!);
                 case "regex":
-                    return RegexArtifactSelector.Deserialize(serialized["data"]);
+                    return RegexArtifactSelector.Deserialize(serialized["data"]!);
                 default:
-                    throw new Exception("Unknown artifact selector in serialization.");
+                    throw new Parsing.JsonParsingException("Unknown ArtifactSelector type in JSON.");
             }
         }
 

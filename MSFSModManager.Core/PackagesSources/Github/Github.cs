@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 
@@ -15,7 +16,20 @@ namespace MSFSModManager.Core.PackageSources.Github
 
     public class GithubRepositoryFormatException : Exception
     {
-        public GithubRepositoryFormatException(string message) : base(message) { }
+        public GithubRepositoryFormatException(string message)
+            : base(message) { }
+    }
+
+    public class GithubAPIException : Exception
+    {
+        public GithubAPIException(string message, Exception baseException)
+            : base($"Could not parse github response: {message}", baseException) { }
+
+        public GithubAPIException(string message)
+            : base($"Could not parse github response: {message}") { }
+
+        public GithubAPIException(Exception baseException)
+            : base("Could not parse github response.", baseException) { }
     }
     
     public class GithubRepository : IJsonSerializable
@@ -61,27 +75,14 @@ namespace MSFSModManager.Core.PackageSources.Github
             if (!(serialized is JObject)) throw new JsonParsingException("");
             JObject obj = (JObject)serialized;
 
-            string? organisation = (string)obj["organisation"];
-            string? repositoryName = (string)obj["name"];
+            if (!(obj.ContainsKey("organisation") && obj.ContainsKey("name")))
+                throw new Parsing.JsonParsingException("JSON object is missing at least one of 'organisation' and 'name'.");
+            string organisation = (string)obj["organisation"]!;
+            string repositoryName = (string)obj["name"]!;
 
             return new GithubRepository(organisation, repositoryName);
         }
     }
-
-    // public class GithubRelease
-    // {
-    //     public VersionNumber? Version { get; private set; }
-    //     public string? DownloadUrl { get; private set; }
-    //     public PackageManifest Manifest { get; private set; }
-
-    //     public GithubRelease(VersionNumber? version, string? downloadUrl, PackageManifest manifest)
-    //     {
-    //         Version = version;
-    //         DownloadUrl = downloadUrl;
-    //         Manifest = manifest;
-    //     }
-    // }
-
 
     public class GithubAPI
     {
@@ -105,17 +106,23 @@ namespace MSFSModManager.Core.PackageSources.Github
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/releases";
             string responseString = await MakeRequest(requestUrl);
 
-            foreach (var release in JArray.Parse(responseString).Children())
+            try
             {
-                JToken? releaseName = release["name"];
-                bool isPreRelease = JsonUtils.Cast<bool>(release["prerelease"]);
-                if (isPreRelease == false)
+                foreach (var release in JArray.Parse(responseString).Children())
                 {
-                    string tagName = JsonUtils.Cast<string>(release["tag_name"]);
-                    tagNames.Add(tagName);
+                    bool isPreRelease = JsonUtils.CastMember<bool>(release, "prerelease");
+                    if (isPreRelease == false)
+                    {
+                        string tagName = JsonUtils.CastMember<string>(release, "tag_name");
+                        tagNames.Add(tagName);
+                    }
                 }
+                return tagNames;
             }
-            return tagNames;
+            catch (Exception e) when (e is JsonParsingException || e is JsonReaderException)
+            {
+                throw new GithubAPIException("While fetching release names.", e);
+            }
         }
 
         public struct Release
@@ -137,38 +144,46 @@ namespace MSFSModManager.Core.PackageSources.Github
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/releases";
             string responseString = await MakeRequest(requestUrl);
 
-            foreach (var release in JArray.Parse(responseString).Children())
+            try
             {
-                JToken? releaseName = release["name"];
-                bool isPreRelease = JsonUtils.Cast<bool>(release["prerelease"]);
-                if (isPreRelease == false)
+                foreach (var release in JArray.Parse(responseString).Children())
                 {
-                    string tagName = JsonUtils.Cast<string>(release["tag_name"]);
-
-                    JArray assetTokens = JsonUtils.Cast<JArray>(release["assets"]);
-
-                    int artifact;
-                    try
+                    bool isPreRelease = JsonUtils.CastMember<bool>(release, "prerelease");
+                    if (isPreRelease == false)
                     {
-                        artifact = artifactSelector.SelectReleaseArtifact(assetTokens.Select(t => JsonUtils.Cast<string>(t["name"])).ToArray());
-                    }
-                    catch (Exception e)
-                    {
-                        if (e.Message.Contains("no") || e.Message.Contains("more than"))
+                        string tagName = JsonUtils.CastMember<string>(release, "tag_name");
+
+                        JArray assetTokens = JsonUtils.CastMember<JArray>(release, "assets");
+
+                        int artifact;
+                        try
                         {
-                            GlobalLogger.Log(LogLevel.Warning, $"{e.Message} ({repository.Name}, {tagName})");
-                            continue;
+                            artifact = artifactSelector.SelectReleaseArtifact(
+                                assetTokens.Select(t => JsonUtils.CastMember<string>(t, "name")
+                            ).ToArray());
                         }
-                        throw e;
-                    }
+                        catch (Exception e)
+                        {
+                            if (e.Message.Contains("no") || e.Message.Contains("more than"))
+                            {
+                                GlobalLogger.Log(LogLevel.Warning, $"{e.Message} ({repository.Name}, {tagName})");
+                                continue;
+                            }
+                            throw e;
+                        }
 
-                    string url = JsonUtils.Cast<string>(assetTokens[artifact]["browser_download_url"]);
-                    releases.Add(new Release(
-                        tagName, url
-                    ));
+                        string url = JsonUtils.CastMember<string>(assetTokens[artifact], "browser_download_url");
+                        releases.Add(new Release(
+                            tagName, url
+                        ));
+                    }
                 }
+                return releases;
             }
-            return releases;
+            catch (Exception e) when (e is JsonParsingException || e is JsonReaderException)
+            {
+                throw new GithubAPIException("While fetching information on available releases.", e);
+            }
         }
 
         public struct Commit
@@ -185,15 +200,23 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         private static Commit ParseCommit(JToken token)
         {
-            string sha = JsonUtils.Cast<string>(token["sha"]);
-            JToken? commitInfoRaw = token["commit"];
-            if (commitInfoRaw == null) throw new Parsing.JsonParsingException("Could not parse commit information.");
+            try
+            {
+                string sha = JsonUtils.CastMember<string>(token, "sha");
+                
+                JToken? commitInfoRaw = token["commit"];
+                if (commitInfoRaw == null) throw new JsonParsingException("Commit info does not contain 'commit'.");
 
-            JToken? authorRaw = commitInfoRaw["author"];
-            if (authorRaw == null) throw new Parsing.JsonParsingException("Could not parse commit author information.");
+                JToken? authorRaw = commitInfoRaw["author"];
+                if (authorRaw == null) throw new GithubRepositoryFormatException("Commit info does not contain 'author'.");
 
-            DateTime date = JsonUtils.Cast<DateTime>(authorRaw["date"]);
-            return new Commit(sha, date);
+                DateTime date = JsonUtils.CastMember<DateTime>(authorRaw, "date");
+                return new Commit(sha, date);
+            }
+            catch (Exception e) when (e is JsonParsingException || e is JsonReaderException)
+            {
+                throw new GithubAPIException("While parsing commit.", e);
+            }
         }
 
         public static async Task<IEnumerable<Commit>> GetBranchCommits(GithubRepository repository, string branch)
@@ -201,7 +224,14 @@ namespace MSFSModManager.Core.PackageSources.Github
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/commits?sha={branch}";
             string responseString = await MakeRequest(requestUrl);
 
-            return JArray.Parse(responseString).Children().Select(t => ParseCommit(t));
+            try
+            {
+                return JArray.Parse(responseString).Children().Select(t => ParseCommit(t));
+            }
+            catch (Exception e) when (e is JsonParsingException || e is JsonReaderException)
+            {
+                throw new GithubAPIException($"While fetching commits from branch {branch}.", e);
+            }
         }
 
         public static async Task<string> GetCommitShaForTag(GithubRepository repository, string tag)
@@ -209,8 +239,15 @@ namespace MSFSModManager.Core.PackageSources.Github
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/commits/{tag}";
             string responseString = await MakeRequest(requestUrl);
 
-            JObject commit = JObject.Parse(responseString);
-            return JsonUtils.Cast<string>(commit["sha"]);
+            try
+            {
+                JObject commit = JObject.Parse(responseString);
+                return JsonUtils.CastMember<string>(commit, "sha");
+            }
+            catch (Exception e) when (e is JsonParsingException || e is JsonReaderException)
+            {
+                throw new GithubAPIException($"While fetching commit sha for tag '{tag}'.", e);
+            }
         }
 
         public static async Task<string> GetManifestString(GithubRepository repository, string commitSha)
@@ -219,21 +256,31 @@ namespace MSFSModManager.Core.PackageSources.Github
             string responseString = await MakeRequest(requestUrl);          
 
             var manifestRegex = new Regex(@"manifest.*\.json");
-            var manifestFiles = JsonUtils.Cast<JArray>(JObject.Parse(responseString)["tree"])
-                .Select(fileToken => (JsonUtils.Cast<string>(fileToken["path"]), JsonUtils.Cast<string>(fileToken["url"])))
-                .Where(fileToken => manifestRegex.IsMatch(fileToken.Item1))
-                .OrderBy(fileToken => Path.GetFileName(fileToken.Item1))
-                .Select(fileToken => fileToken.Item2)
-                .ToArray();
 
-            if (manifestFiles.Length == 0) throw new FileNotFoundException("Manifest file not found in release commit.");
+            try
+            {
+                var manifestFiles = JsonUtils.CastMember<JArray>(JObject.Parse(responseString), "tree")
+                    .Select(fileToken => (JsonUtils.CastMember<string>(fileToken, "path"), JsonUtils.CastMember<string>(fileToken, "url")))
+                    .Where(fileToken => manifestRegex.IsMatch(fileToken.Item1))
+                    .OrderBy(fileToken => Path.GetFileName(fileToken.Item1))
+                    .Select(fileToken => fileToken.Item2)
+                    .ToArray();
 
-            string manifestUrl = manifestFiles.First();
-            responseString = await MakeRequest(manifestUrl);
+                if (manifestFiles.Length == 0) throw new FileNotFoundException("Manifest file not found in release commit.");
 
-            JObject manifestObject = JObject.Parse(responseString);
-            string manifestRaw = Encoding.UTF8.GetString(Convert.FromBase64String(JsonUtils.Cast<string>(manifestObject["content"])));
-            return manifestRaw;
+                string manifestUrl = manifestFiles.First();
+                responseString = await MakeRequest(manifestUrl);
+
+                JObject manifestObject = JObject.Parse(responseString);
+                string manifestRaw = Encoding.UTF8.GetString(
+                    Convert.FromBase64String(JsonUtils.CastMember<string>(manifestObject, "content"))
+                );
+                return manifestRaw;
+            }
+            catch (Exception e) when (e is JsonParsingException || e is JsonReaderException)
+            {
+                throw new GithubAPIException($"While reading manifest from repository {repository} for commit {commitSha}.", e);
+            }
         }
 
     }

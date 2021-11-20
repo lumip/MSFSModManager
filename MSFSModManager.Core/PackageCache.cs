@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Collections.Generic;
 
@@ -94,10 +95,9 @@ namespace MSFSModManager.Core
                         Directory.Delete(path, recursive: false);
                         path = Path.GetDirectoryName(path);
                     }
-                    catch (IOException e)
+                    catch (Exception e)
                     {
-                        // todo: check that it is a DirectoryNotEmpty error
-                        break;
+                        GlobalLogger.Log(LogLevel.Error, $"Could not delete cache directory {path}:\n{e}");
                     }
                 }
 

@@ -9,7 +9,7 @@ using System.IO.Compression;
 
 namespace MSFSModManager.Core.PackageSources.Github
 {
-    class GithubReleaseDownloader
+    class GithubArtifactDownloader
     {
 
         public string PackageId { get; }
@@ -24,7 +24,7 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         internal PackageCache Cache { get; }
 
-        public GithubReleaseDownloader(
+        public GithubArtifactDownloader(
             string packageId,
             IVersionNumber version,
             GithubRepository repository,

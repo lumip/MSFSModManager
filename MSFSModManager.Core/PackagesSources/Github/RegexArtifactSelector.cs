@@ -42,7 +42,7 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         public static RegexArtifactSelector Deserialize(JToken serialized)
         {
-            string pattern = (string)serialized;
+            string pattern = Parsing.JsonUtils.Cast<string>(serialized);
             return new RegexArtifactSelector(pattern);
         }
 

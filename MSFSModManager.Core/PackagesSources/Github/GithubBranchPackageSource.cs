@@ -55,7 +55,7 @@ namespace MSFSModManager.Core.PackageSources.Github
             GithubAPI.Commit commit = _lastReturned.Value;
 
             string downloadUrl = $"https://api.github.com/repos/{_repository.Organisation}/{_repository.Name}/zipball/{commit.Sha}";
-            GithubReleaseDownloader downloader = new GithubReleaseDownloader(
+            GithubArtifactDownloader downloader = new GithubArtifactDownloader(
                 _packageId, versionNumber, _repository, downloadUrl, _client, _cache
             );
             return new GithubReleasePackageInstaller(downloader);
@@ -146,11 +146,11 @@ namespace MSFSModManager.Core.PackageSources.Github
         public static GithubBranchPackageSource Deserialize(string packageId, JToken serialized, PackageCache cache, HttpClient client)
         {
             JObject? repositoryObj = serialized["repository"] as JObject;
-            if (repositoryObj == null) throw new JsonParsingException("no repository present");
+            if (repositoryObj == null) throw new JsonParsingException("JSON does not contain 'repository'.");
 
             GithubRepository repository = GithubRepository.Deserialize(repositoryObj);
 
-            string branch = JsonUtils.Cast<string>(serialized["branch"]);
+            string branch = JsonUtils.CastMember<string>(serialized, "branch");
 
             return new GithubBranchPackageSource(
                 packageId,

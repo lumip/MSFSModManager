@@ -80,7 +80,7 @@ namespace MSFSModManager.Core.PackageSources.Github
             if (_releaseCache.ContainsKey(versionNumber))
             {
                 CachedRelease cachedRelease = _releaseCache[versionNumber];
-                GithubReleaseDownloader downloader = new GithubReleaseDownloader(
+                GithubArtifactDownloader downloader = new GithubArtifactDownloader(
                     _packageId, versionNumber, _repository, cachedRelease.DownloadUrl, _client, _cache
                 );
                 return new GithubReleasePackageInstaller(downloader);
@@ -102,7 +102,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                     }
                     if (versionNumber.Equals(releaseVersion))
                     {
-                        GithubReleaseDownloader downloader = new GithubReleaseDownloader(
+                        GithubArtifactDownloader downloader = new GithubArtifactDownloader(
                             _packageId, versionNumber, _repository, release.DownloadUrl, _client, _cache
                         );
                         return new GithubReleasePackageInstaller(downloader);
@@ -174,7 +174,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                         }
                         else
                         {
-                            var downloader = new GithubReleaseDownloader(_packageId, releaseVersion, _repository, release.DownloadUrl, _client, _cache);
+                            var downloader = new GithubArtifactDownloader(_packageId, releaseVersion, _repository, release.DownloadUrl, _client, _cache);
                             packageFolder = await downloader.DownloadToCache(monitor);
                         }
                         string manifestFilePath = LocateManifest(packageFolder);

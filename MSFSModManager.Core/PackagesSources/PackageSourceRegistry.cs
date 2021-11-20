@@ -21,14 +21,18 @@ namespace MSFSModManager.Core.PackageSources
 
         public IPackageSource Deserialize(string packageId, JToken serialized)
         {
-            if (!(serialized is JObject)) throw new Parsing.JsonParsingException("Expected object in parsing.");
-            string type = Parsing.JsonUtils.Cast<string>(serialized["type"]);
+            if (!(serialized is JObject)) throw new Parsing.JsonParsingException("Expected object in parsing PackageSource JSON.");
+            JObject serializedObj = (JObject)serialized;
+            if (!(serializedObj.ContainsKey("type") && serializedObj.ContainsKey("data")))
+                throw new Parsing.JsonParsingException("PackageSource JSON does not contain 'type' or 'data'.");
+
+            string type = Parsing.JsonUtils.CastMember<string>(serialized, "type");
             switch (type)
             {
                 case nameof(GithubReleasePackageSource):
-                    return GithubReleasePackageSource.Deserialize(packageId, serialized["data"], _cache, _client);
+                    return GithubReleasePackageSource.Deserialize(packageId, serialized["data"]!, _cache, _client);
                 case nameof(GithubBranchPackageSource):
-                    return GithubBranchPackageSource.Deserialize(packageId, serialized["data"], _cache, _client);
+                    return GithubBranchPackageSource.Deserialize(packageId, serialized["data"]!, _cache, _client);
                 default:
                     throw new ArgumentException();
             }

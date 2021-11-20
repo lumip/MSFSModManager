@@ -10,10 +10,10 @@ namespace MSFSModManager.Core.PackageSources.Github
     public class GithubReleasePackageInstaller : IPackageInstaller
     {
 
-        private GithubReleaseDownloader _downloader;
+        private GithubArtifactDownloader _downloader;
 
         internal GithubReleasePackageInstaller(
-            GithubReleaseDownloader downloader
+            GithubArtifactDownloader downloader
         )
         {
             _downloader = downloader;

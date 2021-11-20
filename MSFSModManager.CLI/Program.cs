@@ -287,7 +287,7 @@ namespace MSFSModManager.CLI
             }
             catch (AggregateException e)
             {
-                Exception innerException = e.InnerException;
+                Exception innerException = e.InnerException!;
                 if (innerException is PackageNotAvailableException)
                 {
                     GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: A source of a required package could not be found.");
