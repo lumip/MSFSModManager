@@ -388,9 +388,30 @@ namespace MSFSModManager.CLI
 
             var monitor = new ConsoleProgressMonitor();
 
-            IEnumerable<PackageManifest> toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, gameVersion, monitor).Result
-                .Where(m => !database.Contains(m.Id, new VersionBounds(m.Version)));
-
+            IEnumerable<PackageManifest> toInstall;
+            try
+            {
+                toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, gameVersion, monitor).Result
+                    .Where(m => !database.Contains(m.Id, new VersionBounds(m.SourceVersion)));
+            }
+            catch (AggregateException e)
+            {
+                Exception innerException = e.InnerException!;
+                if (innerException is PackageNotAvailableException)
+                {
+                    GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: A source of a required package could not be found.");
+                }
+                else if (innerException is VersionNotAvailableException)
+                {
+                    GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: A suitable package version for a required package could not be found.");
+                }
+                else
+                {
+                    GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: Unknown error.");
+                }
+                GlobalLogger.Log(LogLevel.CriticalError, $"{innerException}");
+                return ReturnCode.UnknownError;
+            }
 
             GlobalLogger.Log(LogLevel.Info, "Installing packages:");
             foreach (var package in toInstall)
