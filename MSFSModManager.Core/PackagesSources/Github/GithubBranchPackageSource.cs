@@ -18,17 +18,21 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         private PackageCache _cache;
 
-        public GithubBranchPackageSource(string packageId, GithubRepository repository, string branchName, PackageCache cache)
+        private HttpClient _client;
+
+        public GithubBranchPackageSource(string packageId, GithubRepository repository, string branchName, PackageCache cache, HttpClient client)
         {
             _packageId = packageId;
             _repository = repository;
             _branch = branchName;
             _cache = cache;
+            _client = client;
+            _lastReturned = null;
         }
 
-        private List<string>? _branchCommits;
+        private List<GithubAPI.Commit>? _branchCommits;
 
-        private async Task<IEnumerable<string>> FetchCommits()
+        private async Task<IEnumerable<GithubAPI.Commit>> FetchCommits()
         {
             if (_branchCommits == null)
             {
@@ -37,37 +41,88 @@ namespace MSFSModManager.Core.PackageSources.Github
             return _branchCommits;
         }
 
-        public override IPackageInstaller GetInstaller(VersionNumber versionNumber)
-        {
-            GlobalLogger.Log(LogLevel.Warning, "Installing from github branch does not check version bounds, will install latest commit!");
-            string commitSha = FetchCommits().Result.First();
+        private GithubAPI.Commit? _lastReturned; // todo: this is to remember which actual commit was (last) checked in dependency resolution (and is therefore the correct one).
+        // GetInstaller will get the version number from the manifest, which will not be indicative of the commit!
+        // HACKY WORKAROUND THAT MAY BREAK
 
-            throw new NotImplementedException(); // todo!
+        public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
+        {
+            GlobalLogger.Log(LogLevel.Info, versionNumber.ToString());
+            GlobalLogger.Log(LogLevel.Warning, "Installing from github branch does not check version bounds, will install latest commit!");
+            
+            if (!_lastReturned.HasValue) throw new VersionNotAvailableException(_packageId, versionNumber);
+
+            GithubAPI.Commit commit = _lastReturned.Value;
+
+            string downloadUrl = $"https://api.github.com/repos/{_repository.Organisation}/{_repository.Name}/zipball/{commit.Sha}";
+            GithubReleaseDownloader downloader = new GithubReleaseDownloader(
+                _packageId, versionNumber, _repository, downloadUrl, _client, _cache
+            );
+            return new GithubReleasePackageInstaller(downloader);
+
+            // if (_releaseCache.ContainsKey(versionNumber))
+            // {
+            //     CachedRelease cachedRelease = _releaseCache[versionNumber];
+            //     GithubReleaseDownloader downloader = new GithubReleaseDownloader(
+            //         _packageId, versionNumber, _repository, cachedRelease.DownloadUrl, _client, _cache
+            //     );
+            //     return new GithubReleasePackageInstaller(downloader);
+            // }
+            // else
+            // {
+            //     IEnumerable<GithubAPI.Release> releases = FetchGithubReleases().Result;
+            //     foreach (GithubAPI.Release release in releases)
+            //     {
+            //         VersionNumber releaseVersion;
+            //         try
+            //         {
+            //             releaseVersion = VersionNumber.FromString(release.Name);
+            //         }
+            //         catch (FormatException)
+            //         {
+            //             GlobalLogger.Log(LogLevel.Info, $"Cannot parse version number of github release {release.Name} ({_packageId})");
+            //             continue;
+            //         }
+            //         if (versionNumber.Equals(releaseVersion))
+            //         {
+            //             GithubReleaseDownloader downloader = new GithubReleaseDownloader(
+            //                 _packageId, versionNumber, _repository, release.DownloadUrl, _client, _cache
+            //             );
+            //             return new GithubReleasePackageInstaller(downloader);
+            //         }
+            //     }
+            //     throw new VersionNotAvailableException(_packageId, new VersionBounds(versionNumber));
+            // }
         }
 
         public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor = null)
         {
-            GlobalLogger.Log(LogLevel.Warning, "Sourcing from github branch does not check version bounds, will use latest commit!");
+            foreach (var commit in await FetchCommits())
+            {
+                if (!versionBounds.CheckVersion(new GitCommitVersionNumber(commit.Sha, commit.Date)))
+                    continue;
 
-            string commitSha = (await FetchCommits()).First();
-            string rawManifest = await GithubAPI.GetManifestString(_repository, commitSha);
-            PackageManifest manifest;
-            try
-            {
-                manifest = PackageManifest.Parse(_packageId, rawManifest);
-            }
-            catch (ArgumentException)
-            {
-                GlobalLogger.Log(LogLevel.CriticalError, $"Manifest for {_packageId} github commit {commitSha} does not provide a version number.");
-                throw new PackageNotAvailableException(_packageId);
-            }
+                string rawManifest = await GithubAPI.GetManifestString(_repository, commit.Sha);
+                PackageManifest manifest;
+                try
+                {
+                    manifest = PackageManifest.Parse(_packageId, rawManifest);
+                }
+                catch (ArgumentException)
+                {
+                    GlobalLogger.Log(LogLevel.CriticalError, $"Manifest for {_packageId} github commit {commit.Sha} does not provide a version number.");
+                    throw new PackageNotAvailableException(_packageId);
+                }
 
-            if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
-            {
-                GlobalLogger.Log(LogLevel.Info, $"{_packageId} branch {_branch} (latest commit: {commitSha} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
-                throw new PackageNotAvailableException(_packageId);
+                if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
+                {
+                    GlobalLogger.Log(LogLevel.Info, $"{_packageId} branch {_branch} (latest commit: {commit.Sha} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
+                    throw new PackageNotAvailableException(_packageId);
+                }
+                _lastReturned = commit;
+                return manifest;
             }
-            return manifest;
+            throw new VersionNotAvailableException(_packageId, versionBounds);
         }
 
         public override string ToString()
@@ -75,9 +130,9 @@ namespace MSFSModManager.Core.PackageSources.Github
             return $"https://github.com/{_repository.Organisation}/{_repository.Name} (Branch {_branch})";
         }
 
-        public override Task<IEnumerable<VersionNumber>> ListAvailableVersions()
+        public override async Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
         {
-            throw new NotSupportedException();
+            return (await FetchCommits()).Select(c => new GitCommitVersionNumber(c.Sha, c.Date));
         }
 
         public override JToken Serialize()
@@ -101,7 +156,8 @@ namespace MSFSModManager.Core.PackageSources.Github
                 packageId,
                 repository,
                 branch,
-                cache
+                cache,
+                client
             );
         }
     }

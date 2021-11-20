@@ -10,9 +10,9 @@ namespace MSFSModManager.Core
         private struct PackageCacheKey
         {
             public string PackageId { get; }
-            public VersionNumber Version { get; }
+            public IVersionNumber Version { get; }
 
-            public PackageCacheKey(string packageId, VersionNumber versionNumber)
+            public PackageCacheKey(string packageId, IVersionNumber versionNumber)
             {
                 PackageId = packageId;
                 Version = versionNumber;
@@ -42,13 +42,13 @@ namespace MSFSModManager.Core
             }
         }
 
-        public bool Contains(string packageId, VersionNumber versionNumber)
+        public bool Contains(string packageId, IVersionNumber versionNumber)
         {
             PackageCacheKey cacheKey = new PackageCacheKey(packageId, versionNumber);
             return _cachedPackagePaths.ContainsKey(cacheKey);
         }
 
-        public string GetPath(string packageId, VersionNumber versionNumber)
+        public string GetPath(string packageId, IVersionNumber versionNumber)
         {
             PackageCacheKey cacheKey = new PackageCacheKey(packageId, versionNumber);
             string relativePath = _cachedPackagePaths[cacheKey];
@@ -56,7 +56,7 @@ namespace MSFSModManager.Core
             return path;
         }
 
-        public string AddCacheEntry(string packageId, VersionNumber versionNumber)
+        public string AddCacheEntry(string packageId, IVersionNumber versionNumber)
         {
             string path;
             PackageCacheKey cacheKey = new PackageCacheKey(packageId, versionNumber);
@@ -77,7 +77,7 @@ namespace MSFSModManager.Core
             return path;
         }
 
-        public void RemoveCacheEntry(string packageId, VersionNumber versionNumber)
+        public void RemoveCacheEntry(string packageId, IVersionNumber versionNumber)
         {
             PackageCacheKey cacheKey = new PackageCacheKey(packageId, versionNumber);
             if (_cachedPackagePaths.ContainsKey(cacheKey))

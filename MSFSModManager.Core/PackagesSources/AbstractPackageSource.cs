@@ -9,10 +9,10 @@ namespace MSFSModManager.Core.PackageSources
         public virtual Task<PackageManifest> GetPackageManifest(IVersionNumber gameVersion, IProgressMonitor? monitor = null) => GetPackageManifest(VersionBounds.Unbounded, gameVersion, monitor);
         public abstract Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor = null);
 
-        public abstract IPackageInstaller GetInstaller(VersionNumber versionNumber);
+        public abstract IPackageInstaller GetInstaller(IVersionNumber versionNumber);
 
         public abstract JToken Serialize();
 
-        public abstract Task<IEnumerable<VersionNumber>> ListAvailableVersions();
+        public abstract Task<IEnumerable<IVersionNumber>> ListAvailableVersions();
     }
 }

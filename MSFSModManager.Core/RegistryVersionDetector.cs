@@ -28,7 +28,7 @@ namespace MSFSModManager.Core
                             .Where(valueName => valueName.Contains("FlightSimulator"))
                             .Select(valueName => {
                                 string[] splits = valueName.Split('_');
-                                if (splits.Length != 4 || splits[0] != "Microsoft.FlightSimulator")
+                                if (splits.Length < 2 || splits[0] != "Microsoft.FlightSimulator")
                                 {
                                     throw new Exception("Failed to parse FlightSimulator package registry value.");
                                 }

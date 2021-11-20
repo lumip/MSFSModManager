@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Linq;
 using System.IO.Compression;
 
@@ -13,7 +14,7 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         public string PackageId { get; }
 
-        public VersionNumber Version { get; }
+        public IVersionNumber Version { get; }
         private string _url;
         private HttpClient _client;
 
@@ -25,7 +26,7 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         public GithubReleaseDownloader(
             string packageId,
-            VersionNumber version,
+            IVersionNumber version,
             GithubRepository repository,
             string url,
             HttpClient httpClient,
@@ -47,20 +48,44 @@ namespace MSFSModManager.Core.PackageSources.Github
 
             try
             {
-                HttpResponseMessage response = await _client.GetAsync(_url, HttpCompletionOption.ResponseHeadersRead);
-
-                long totalBytes = Convert.ToInt64(response.Content.Headers.GetValues("Content-Length").First());
-                HttpClientDownloadProgressMonitor downloadMonitor = new HttpClientDownloadProgressMonitor(PackageId, Version, totalBytes);
-
-                monitor?.DownloadStarted(downloadMonitor);
-
-
-                using (var responseStream = await response.Content.ReadAsStreamAsync())
-                using (var fileStream = File.Create(archiveFilePath))
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, _url);
+                request.Headers.UserAgent.Add(new ProductInfoHeaderValue("lumip", "0.1"));
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
+                using (HttpResponseMessage response = await _client.SendAsync(request, HttpCompletionOption.ResponseContentRead))
                 {
-                    await responseStream.CopyToAsync(fileStream, downloadMonitor, CancellationToken.None);
+
+                    // HttpResponseMessage response = await _client.GetAsync(_url, HttpCompletionOption.ResponseHeadersRead);
+
+                    GlobalLogger.Log(LogLevel.Warning, $"{response.StatusCode}");
+                    GlobalLogger.Log(LogLevel.Warning, "################################");
+                    GlobalLogger.Log(LogLevel.Warning, response.Headers.ToString());
+                    GlobalLogger.Log(LogLevel.Warning, "################################");
+                    GlobalLogger.Log(LogLevel.Warning, response.Content.Headers.ToString());
+
+                    response.EnsureSuccessStatusCode();
+
+                    IDownloadProgressMonitor downloadMonitor;
+
+                    try
+                    {
+                        long totalBytes = Convert.ToInt64(response.Content.Headers.GetValues("Content-Length").First());
+                        downloadMonitor = new HttpClientDownloadProgressMonitor(PackageId, Version, totalBytes);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        downloadMonitor = new HttpClientUnknownSizeDownloadProgressMonitor(PackageId, Version);
+                    }
+
+                    monitor?.DownloadStarted(downloadMonitor);
+
+
+                    using (var responseStream = await response.Content.ReadAsStreamAsync())
+                    using (var fileStream = File.Create(archiveFilePath))
+                    {
+                        await responseStream.CopyToAsync(fileStream, (IProgress<long>)downloadMonitor, CancellationToken.None);
+                    }
+                    return archiveFilePath;
                 }
-                return archiveFilePath;
             }
             catch (Exception e)
             {

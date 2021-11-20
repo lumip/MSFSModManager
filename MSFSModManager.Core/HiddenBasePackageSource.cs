@@ -16,7 +16,7 @@ namespace MSFSModManager.Core
             _packageId = packageId;
         }
 
-        public override IPackageInstaller GetInstaller(VersionNumber versionNumber)
+        public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
         {
             throw new NotSupportedException("Installation of base packages not supported.");
         }
@@ -34,7 +34,7 @@ namespace MSFSModManager.Core
             return Task.FromResult(manifest);
         }
 
-        public override Task<IEnumerable<VersionNumber>> ListAvailableVersions()
+        public override Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
         {
             throw new NotSupportedException();
         }

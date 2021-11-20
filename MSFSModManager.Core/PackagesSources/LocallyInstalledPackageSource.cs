@@ -18,7 +18,7 @@ namespace MSFSModManager.Core.PackageSources
             if (_installedPackage.Manifest == null) throw new ArgumentException("Installed package must have a manifest.", nameof(installedPackage));
         }
 
-        public override IPackageInstaller GetInstaller(VersionNumber versionNumber)
+        public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
         {
             return new NoOpPackageInstaller(_installedPackage.Id);
         }
@@ -33,9 +33,9 @@ namespace MSFSModManager.Core.PackageSources
             throw new VersionNotAvailableException(_installedPackage.Id, versionBounds);
         }
 
-        public override Task<IEnumerable<VersionNumber>> ListAvailableVersions()
+        public override Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
         {
-            VersionNumber[] versions = new VersionNumber[] { _installedPackage.Manifest!.Version };
+            IVersionNumber[] versions = new VersionNumber[] { _installedPackage.Manifest!.Version };
             return Task.FromResult(versions.AsEnumerable());
         }
 

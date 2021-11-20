@@ -13,5 +13,8 @@ namespace MSFSModManager.Core
             PackageId = packageId;
             VersionBounds = versionBounds;
         }
+
+        public VersionNotAvailableException(string packageId, IVersionNumber versionNumber)
+            : this(packageId, new VersionBounds(versionNumber)) { }
     }
 }

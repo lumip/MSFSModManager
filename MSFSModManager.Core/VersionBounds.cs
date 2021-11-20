@@ -22,7 +22,9 @@ namespace MSFSModManager.Core
             if (lower.CompareTo(upper) > 0) throw new UnsatisfiableBoundsException(lower, upper);
         }
 
-        public VersionBounds(VersionNumber version) : this(version, new VersionNumber(version.Major, version.Minor, version.Patch + 1)) { }
+        // public VersionBounds(IVersionNumber version) : this(version, new VersionNumber(version.Major, version.Minor, version.Patch + 1)) { }
+
+        public VersionBounds(IVersionNumber version) : this(version, version.Increment()) { }
 
         public static VersionBounds Unbounded = new VersionBounds(VersionNumber.Zero, VersionNumber.Infinite);
 

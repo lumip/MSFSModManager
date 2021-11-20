@@ -21,7 +21,7 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         public string PackageId => _downloader.PackageId;
 
-        private VersionNumber Version => _downloader.Version;
+        private IVersionNumber Version => _downloader.Version;
         private string CacheId => _downloader.CacheId;
 
         private PackageCache Cache => _downloader.Cache;

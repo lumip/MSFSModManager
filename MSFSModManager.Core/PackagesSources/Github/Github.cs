@@ -171,12 +171,37 @@ namespace MSFSModManager.Core.PackageSources.Github
             return releases;
         }
 
-        public static async Task<IEnumerable<string>> GetBranchCommits(GithubRepository repository, string branch)
+        public struct Commit
+        {
+            public readonly string Sha;
+            public readonly DateTime Date;
+
+            public Commit(string sha, DateTime date)
+            {
+                Sha = sha;
+                Date = date;
+            }
+        }
+
+        private static Commit ParseCommit(JToken token)
+        {
+            string sha = JsonUtils.Cast<string>(token["sha"]);
+            JToken? commitInfoRaw = token["commit"];
+            if (commitInfoRaw == null) throw new Parsing.JsonParsingException("Could not parse commit information.");
+
+            JToken? authorRaw = commitInfoRaw["author"];
+            if (authorRaw == null) throw new Parsing.JsonParsingException("Could not parse commit author information.");
+
+            DateTime date = JsonUtils.Cast<DateTime>(authorRaw["date"]);
+            return new Commit(sha, date);
+        }
+
+        public static async Task<IEnumerable<Commit>> GetBranchCommits(GithubRepository repository, string branch)
         {
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/commits?sha={branch}";
             string responseString = await MakeRequest(requestUrl);
 
-            return JArray.Parse(responseString).Children().Select(t => JsonUtils.Cast<string>(t["sha"]));
+            return JArray.Parse(responseString).Children().Select(t => ParseCommit(t));
         }
 
         public static async Task<string> GetCommitShaForTag(GithubRepository repository, string tag)

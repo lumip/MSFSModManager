@@ -10,9 +10,9 @@ namespace MSFSModManager.CLI
         private struct Key
         {
             string PackageId;
-            VersionNumber Version;
+            IVersionNumber Version;
 
-            public Key(string packageId, VersionNumber version)
+            public Key(string packageId, IVersionNumber version)
             {
                 PackageId = packageId;
                 Version = version;
@@ -28,7 +28,7 @@ namespace MSFSModManager.CLI
             _renderer = renderer;
         }
 
-        public ConsoleRenderer.LineHandle GetLineHandle(string packageId, VersionNumber version)
+        public ConsoleRenderer.LineHandle GetLineHandle(string packageId, IVersionNumber version)
         {
             Key k = new Key(packageId, version);
             if (!_lines.ContainsKey(k)) _lines.Add(k, _renderer.MakeNewLineHandle());

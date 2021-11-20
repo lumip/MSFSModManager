@@ -85,16 +85,26 @@ namespace MSFSModManager.CLI
             }
             else
             {
-                contentPath = ConfigReader.ReadContentPathFromConfig(@"/media/data/MSFSData/UserCfg.opt");
+                string localApps = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+                string cfgPath = Path.Join(localApps, "Packages", "Microsoft.FlightSimulator_8wekyb3d8bbwe", "LocalCache", "UserCfg.opt");
+                try
+                {
+                    contentPath = ConfigReader.ReadContentPathFromConfig(cfgPath);
+                }
+                catch (Exception e) when (e is DirectoryNotFoundException || e is FileNotFoundException)
+                {
+                    contentPath = ConfigReader.ReadContentPathFromConfig(@"/media/data/MSFSData/UserCfg.opt");
+                }
             }
             
             try
             {
                 gameVersion = new RegistryVersionDetector().Version;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 GlobalLogger.Log(LogLevel.Error, "Could not detect game version, assuming latest!");
+                GlobalLogger.Log(LogLevel.Error, $"{e}");
             }
 
             
@@ -237,7 +247,7 @@ namespace MSFSModManager.CLI
                 bar.Render();
             }
 
-            public void ExtractionCompleted(string packageId, VersionNumber versionNumber)
+            public void ExtractionCompleted(string packageId, IVersionNumber versionNumber)
             {
                 ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(packageId, versionNumber);
                 
@@ -245,7 +255,7 @@ namespace MSFSModManager.CLI
                 line.Write($"Extracting {packageId} {versionNumber} completed");
             }
 
-            public void ExtractionStarted(string packageId, VersionNumber versionNumber)
+            public void ExtractionStarted(string packageId, IVersionNumber versionNumber)
             {
                 ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(packageId, versionNumber);
 

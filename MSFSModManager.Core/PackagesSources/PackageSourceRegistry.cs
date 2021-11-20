@@ -64,7 +64,7 @@ namespace MSFSModManager.Core.PackageSources
                     string[] urlSplits = url.Split('@', 2);
                     GithubRepository repository = GithubRepository.FromUrl(urlSplits[0]);
                     string branch = urlSplits[1];
-                    return new GithubBranchPackageSource(packageId, repository, branch, _cache);
+                    return new GithubBranchPackageSource(packageId, repository, branch, _cache, _client);
                 }
                 else
                 {

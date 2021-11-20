@@ -12,6 +12,11 @@ namespace MSFSModManager.Core
 
     public class ConfigReader
     {
+
+
+        //         const steamMsfsPath = app.getPath('appData') + "\\Microsoft Flight Simulator\\UserCfg.opt";
+        // const msStoreMsfsPath = app.getPath('home') + "\\AppData\\Local\\Packages\\Microsoft.FlightSimulator_8wekyb3d8bbwe\\LocalCache\\UserCfg.opt";
+
         public static string ReadContentPathFromConfig(string configFilePath)
         {
             string[] optFileLines = File.ReadAllLines(configFilePath);

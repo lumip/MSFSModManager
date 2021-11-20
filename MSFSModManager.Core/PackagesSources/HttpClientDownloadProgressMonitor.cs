@@ -8,7 +8,7 @@ namespace MSFSModManager.Core.PackageSources
 
         public string PackageId { get; }
 
-        public VersionNumber Version { get; }
+        public IVersionNumber Version { get; }
 
         public long TotalSize { get; }
 
@@ -18,7 +18,7 @@ namespace MSFSModManager.Core.PackageSources
 
         public bool IsCompleted => CurrentSize == TotalSize;
 
-        public HttpClientDownloadProgressMonitor(string packageId, VersionNumber version, long totalSize)
+        public HttpClientDownloadProgressMonitor(string packageId, IVersionNumber version, long totalSize)
         {
             PackageId = packageId;
             Version = version;
@@ -33,5 +33,35 @@ namespace MSFSModManager.Core.PackageSources
         }
 
         public event DownloadProgressHandler? DownloadProgress;
+    }
+
+    public class HttpClientUnknownSizeDownloadProgressMonitor : IDownloadProgressMonitor, IProgress<long>
+    {
+        public HttpClientUnknownSizeDownloadProgressMonitor(string packageId, IVersionNumber versionNumber)
+        {
+            PackageId = packageId;
+            Version = versionNumber;
+        }
+
+        public string PackageId { get; }
+
+        public IVersionNumber Version { get; }
+
+        public long TotalSize { get; private set; }
+
+        public long CurrentSize { get; private set; }
+
+        public float CurrentPercentage => 0.0f;
+
+        public object? UserData { get; set; }
+
+        public event DownloadProgressHandler? DownloadProgress;
+
+        public void Report(long progress)
+        {
+            CurrentSize = progress;
+            TotalSize = progress;
+            DownloadProgress?.Invoke(this);
+        }
     }
 }

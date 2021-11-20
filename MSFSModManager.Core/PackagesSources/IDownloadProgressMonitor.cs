@@ -6,7 +6,7 @@ namespace MSFSModManager.Core.PackageSources
     public interface IDownloadProgressMonitor
     {
         string PackageId { get; }
-        VersionNumber Version { get; }
+        IVersionNumber Version { get; }
 
         long TotalSize { get; }
         long CurrentSize { get; }
@@ -19,6 +19,6 @@ namespace MSFSModManager.Core.PackageSources
 
     public delegate void DownloadStartedHandler(IDownloadProgressMonitor monitor);
 
-    public delegate void ExtractionStartedHandler(string packageId, VersionNumber versionNumber);
-    public delegate void ExtractionCompletedHandler(string packageId, VersionNumber versionNumber);
+    public delegate void ExtractionStartedHandler(string packageId, IVersionNumber versionNumber);
+    public delegate void ExtractionCompletedHandler(string packageId, IVersionNumber versionNumber);
 }

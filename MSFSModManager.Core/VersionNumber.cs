@@ -7,7 +7,79 @@ namespace MSFSModManager.Core
 
     public interface IVersionNumber : IComparable<IVersionNumber>
     {
+        IVersionNumber Increment();
+    }
 
+    public class IncrementedVersionNumber : IVersionNumber
+    {
+        private IVersionNumber _baseVersion;
+
+        public IncrementedVersionNumber(IVersionNumber baseVersion)
+        {
+            _baseVersion = baseVersion;
+        }
+
+        public int CompareTo(IVersionNumber other)
+        {
+            if (other is IncrementedVersionNumber)
+            {
+                if (((IncrementedVersionNumber)other)._baseVersion.Equals(_baseVersion)) return 0;
+            }
+            if (_baseVersion.CompareTo(other) < 1) return -1;
+            return 1;
+        }
+
+        public IVersionNumber Increment()
+        {
+            return new IncrementedVersionNumber(this);
+        }
+    }
+
+    public class GitCommitVersionNumber : IVersionNumber
+    {
+
+        public string Commit { get; }
+        private DateTime _date;
+
+        public GitCommitVersionNumber(string commitSha, DateTime date)
+        {
+            Commit = commitSha;
+            _date = date;
+        }
+
+        public int CompareTo(GitCommitVersionNumber other)
+        {
+            return _date.CompareTo(other);
+        }
+
+        public int CompareTo(IVersionNumber other)
+        {
+            if (other is VersionNumber) return 1;
+            if (other is GitCommitVersionNumber) CompareTo((GitCommitVersionNumber)other);
+            return -other.CompareTo(this);
+        }
+
+        public override bool Equals(object obj)
+        {
+            IVersionNumber? other = obj as IVersionNumber;
+            if (other == null) return false;
+            return CompareTo(other) == 0;
+        }
+
+        public override int GetHashCode()
+        {
+            return Commit.GetHashCode() * 48571 + _date.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return Commit.Substring(0, 8);
+        }
+
+        public IVersionNumber Increment()
+        {
+            return new IncrementedVersionNumber(this);
+        }
     }
 
     public class InfiniteVersionNumber : IVersionNumber
@@ -22,6 +94,12 @@ namespace MSFSModManager.Core
         {
             return "∞";
         }
+
+        public IVersionNumber Increment()
+        {
+            return this;
+        }
+
     }
 
     public class VersionNumber : IVersionNumber
@@ -154,7 +232,7 @@ namespace MSFSModManager.Core
             return (a.CompareTo(b) >= 0) ? a : b;
         }
 
-        public VersionNumber Increment()
+        public IVersionNumber Increment()
         {
             return new VersionNumber(Major, Minor, Patch + 1);
         }

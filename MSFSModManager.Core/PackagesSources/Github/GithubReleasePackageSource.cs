@@ -69,7 +69,13 @@ namespace MSFSModManager.Core.PackageSources.Github
         public GithubReleasePackageSource(GithubRepository repository, PackageCache cache, HttpClient client)
             : this(repository.Name, repository, cache, client) { }
 
-        public override IPackageInstaller GetInstaller(VersionNumber versionNumber)
+        public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
+        {
+            if (!(versionNumber is VersionNumber)) throw new VersionNotAvailableException(_packageId, versionNumber);
+            return GetInstaller((VersionNumber)versionNumber);
+        }
+
+        public IPackageInstaller GetInstaller(VersionNumber versionNumber)
         {
             if (_releaseCache.ContainsKey(versionNumber))
             {
@@ -221,7 +227,7 @@ namespace MSFSModManager.Core.PackageSources.Github
             return $"https://github.com/{_repository.Organisation}/{_repository.Name} (Releases, {_artifactSelector})";
         }
 
-        public override async Task<IEnumerable<VersionNumber>> ListAvailableVersions()
+        public override async Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
         {
             return (await FetchGithubReleases()).Select(r => VersionNumber.FromString(r.Name));
         }
