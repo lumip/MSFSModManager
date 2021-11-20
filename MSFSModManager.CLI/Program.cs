@@ -100,37 +100,47 @@ namespace MSFSModManager.CLI
             try
             {
                 gameVersion = new RegistryVersionDetector().Version;
+                GlobalLogger.Log(LogLevel.Info, $"Game version {gameVersion}.");
             }
             catch (Exception e)
             {
-                GlobalLogger.Log(LogLevel.Error, "Could not detect game version, assuming latest!");
+                GlobalLogger.Log(LogLevel.Error, "Could not detect game version, assuming latest! This is caused by error:");
                 GlobalLogger.Log(LogLevel.Error, $"{e}");
             }
 
             
             GlobalLogger.Log(LogLevel.Info, $"Content directory: {contentPath}");
 
-            switch (command)
+
+            try
             {
-                case "list":
-                    return (int)ListInstalled(contentPath, options, flags);
-                case "add-source":
-                    return (int)AddSource(contentPath, args);
-                case "remove-source":
-                    return (int)RemoveSource(contentPath, args);
-                case "install":
-                    return (int)Install(contentPath, args);
-                case "uninstall":
-                    return (int)Uninstall(contentPath, args);
-                case "show-available":
-                    return (int)ShowAvailable(contentPath, args);
-                case "update":
-                    return (int)Update(contentPath, args);
-                case "export":
-                    return (int)Export(contentPath, args);
-                default:
-                    GlobalLogger.Log(LogLevel.CriticalError, $"Unknown mode command {command}.");
-                    return (int)ReturnCode.ModeError;
+                switch (command)
+                {
+                    case "list":
+                        return (int)ListInstalled(contentPath, options, flags);
+                    case "add-source":
+                        return (int)AddSource(contentPath, args);
+                    case "remove-source":
+                        return (int)RemoveSource(contentPath, args);
+                    case "install":
+                        return (int)Install(contentPath, args);
+                    case "uninstall":
+                        return (int)Uninstall(contentPath, args);
+                    case "show-available":
+                        return (int)ShowAvailable(contentPath, args);
+                    case "update":
+                        return (int)Update(contentPath, args);
+                    case "export":
+                        return (int)Export(contentPath, args);
+                    default:
+                        GlobalLogger.Log(LogLevel.CriticalError, $"Unknown mode command {command}.");
+                        return (int)ReturnCode.ModeError;
+                }
+            }
+            catch (Exception e)
+            {
+                GlobalLogger.Log(LogLevel.CriticalError, e.ToString());
+                return (int)ReturnCode.UnknownError;
             }
         }
 
@@ -185,12 +195,6 @@ namespace MSFSModManager.CLI
             string packageSourceUrl = args[2];
             string[] sourceStrings = args.Skip(2).ToArray();
             return AddSource(contentPath, packageId, sourceStrings);
-            // IGithubReleaseArtifactSelector artifactSelector = new DefaultArtifactSelector();
-            // if (args.Length > 3)
-            // {
-            //     artifactSelector = new RegexArtifactSelector(args[3]);
-            // }
-            // return AddSource(contentPath, packageId, packageSourceUrl, artifactSelector);
         }
 
         static ReturnCode AddSource(string contentPath, string packageId, string[] sourceStrings)
@@ -198,8 +202,6 @@ namespace MSFSModManager.CLI
             (PackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
 
             IPackageSource source = database.SourceRegistry.ParseSourceStrings(packageId, sourceStrings);
-
-            // IPackageSource source = new GithubReleasePackageSource(packageId, GithubRepository.FromUrl(packageSourceURL), cache, client, artifactSelector);
 
             database.AddPackageSource(packageId, source);
             return ReturnCode.Success;
@@ -231,7 +233,7 @@ namespace MSFSModManager.CLI
         {
             public void DownloadStarted(IDownloadProgressMonitor monitor)
             {
-                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(monitor.PackageId, monitor.Version);
+                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(monitor.PackageId);
 
                 ProgressBar bar = new ProgressBar($"downloading {monitor.PackageId} {monitor.Version}", $"{monitor.TotalSize / (1024*1024)} MB", line);
                 bar.Render();
@@ -249,15 +251,15 @@ namespace MSFSModManager.CLI
 
             public void ExtractionCompleted(string packageId, IVersionNumber versionNumber)
             {
-                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(packageId, versionNumber);
+                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(packageId);
                 
                 line.Clear();
-                line.Write($"Extracting {packageId} {versionNumber} completed");
+                line.Write($"Extracting {packageId} {versionNumber} completed.");
             }
 
             public void ExtractionStarted(string packageId, IVersionNumber versionNumber)
             {
-                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(packageId, versionNumber);
+                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(packageId);
 
                 line.Clear();
                 line.Write($"Extracting {packageId} {versionNumber} ...");
@@ -283,7 +285,7 @@ namespace MSFSModManager.CLI
             try
             {
                 toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, gameVersion, monitor).Result
-                    .Where(m => !database.Contains(m.Id, new VersionBounds(m.Version)));
+                    .Where(m => !database.Contains(m.Id, new VersionBounds(m.SourceVersion)));
             }
             catch (AggregateException e)
             {
@@ -310,7 +312,7 @@ namespace MSFSModManager.CLI
             {
                 GlobalLogger.Log(LogLevel.Info, $"{package.Id,-60} {package.Version,14}");
 
-                IPackageInstaller installer = source.GetSource(package.Id).GetInstaller(package.Version);
+                IPackageInstaller installer = source.GetSource(package.Id).GetInstaller(package.SourceVersion);
                 
                 database.InstallPackage(installer, monitor).Wait();
             }
@@ -392,7 +394,7 @@ namespace MSFSModManager.CLI
             foreach (var package in toInstall)
             {
                 GlobalLogger.Log(LogLevel.Info, $"{package.Id,-60} {package.Version,14}");
-                database.InstallPackage(source.GetSource(package.Id).GetInstaller(package.Version), monitor).Wait();
+                database.InstallPackage(source.GetSource(package.Id).GetInstaller(package.SourceVersion), monitor).Wait();
             }
 
             return ReturnCode.Success;

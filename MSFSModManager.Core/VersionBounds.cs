@@ -19,7 +19,7 @@ namespace MSFSModManager.Core
         {
             Lower = lower;
             Upper = upper;
-            if (lower.CompareTo(upper) > 0) throw new UnsatisfiableBoundsException(lower, upper);
+            if (lower.CompareTo(upper) >= 0) throw new UnsatisfiableBoundsException(lower, upper);
         }
 
         // public VersionBounds(IVersionNumber version) : this(version, new VersionNumber(version.Major, version.Minor, version.Patch + 1)) { }

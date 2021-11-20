@@ -1,9 +1,5 @@
-using System;
 using System.Threading.Tasks;
-using System.Net;
-using System.Net.Http;
 using System.IO;
-using System.IO.Compression;
 
 namespace MSFSModManager.Core.PackageSources.Github
 {

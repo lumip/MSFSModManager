@@ -77,6 +77,7 @@ namespace MSFSModManager.Core
         public string Title { get; }
         public IVersionNumber MinimumGameVersion { get; }
         public VersionNumber Version { get; }
+        public IVersionNumber SourceVersion { get; }
 
         public string Type { get; }
 
@@ -90,7 +91,8 @@ namespace MSFSModManager.Core
             IVersionNumber minimumGameVersion,
             string type,
             IEnumerable<PackageDependency> dependencies,
-            string? creator = null
+            string? creator = null,
+            IVersionNumber? sourceVersionNumber = null
         )
         {
             Id = id;
@@ -102,10 +104,11 @@ namespace MSFSModManager.Core
             Type = type;
 
             Creator = creator;
+            SourceVersion = sourceVersionNumber ?? Version;
             // TotalPackageSize = null;
         }
 
-        public static PackageManifest Parse(string id, string manifestText, VersionNumber? forceVersion = null)
+        public static PackageManifest Parse(string id, string manifestText, VersionNumber? forceVersion = null, IVersionNumber? sourceVersion = null)
         {
             Parsing.PackageManifestData? data = JsonConvert.DeserializeObject<Parsing.PackageManifestData>(manifestText);
             if (!data.HasValue) throw new Parsing.ManifestParsingException("<unknown>");
@@ -139,7 +142,7 @@ namespace MSFSModManager.Core
 
             try
             {
-                return new PackageManifest(id, title, versionNumber, minimumGameVersion, type, dependencies, creator);
+                return new PackageManifest(id, title, versionNumber, minimumGameVersion, type, dependencies, creator, sourceVersion);
             }
             catch (Exception e)
             {

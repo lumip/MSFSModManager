@@ -11,13 +11,16 @@ namespace MSFSModManager.Core
         private struct PackageCacheKey
         {
             public string PackageId { get; }
-            public IVersionNumber Version { get; }
+            public string Version { get; }
 
-            public PackageCacheKey(string packageId, IVersionNumber versionNumber)
+            public PackageCacheKey(string packageId, string versionNumber)
             {
                 PackageId = packageId;
                 Version = versionNumber;
             }
+
+            public PackageCacheKey(string packageId, IVersionNumber versionNumber)
+                : this(packageId, versionNumber.ToString()) { }
         }
 
         private Dictionary<PackageCacheKey, string> _cachedPackagePaths;
@@ -37,7 +40,7 @@ namespace MSFSModManager.Core
             {
                 foreach (DirectoryInfo versionDir in packageDir.GetDirectories())
                 {
-                    PackageCacheKey key = new PackageCacheKey(packageDir.Name, VersionNumber.FromString(versionDir.Name));
+                    PackageCacheKey key = new PackageCacheKey(packageDir.Name, versionDir.Name);
                     _cachedPackagePaths.Add(key, Path.GetRelativePath(_cachePath, versionDir.FullName));
                 }
             }

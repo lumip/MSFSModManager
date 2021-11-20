@@ -45,7 +45,9 @@ namespace MSFSModManager.Core
 
                 try
                 {
-                    PackageManifest manifest = await packageSources.GetSource(node.PackageId).GetPackageManifest(node.VersionBounds, gameVersion, monitor);
+                    PackageManifest manifest = await packageSources.GetSource(node.PackageId).GetPackageManifest(
+                        node.VersionBounds, gameVersion, monitor
+                    );
 
                     string parentsString = String.Join(", ", node.Parents.Select(p => $"{p.PackageId} {p.ActualizedVersion}"));
                     GlobalLogger.Log(LogLevel.Info, $"Resolved package {manifest.Id} as {manifest.Version} (from {parentsString})");

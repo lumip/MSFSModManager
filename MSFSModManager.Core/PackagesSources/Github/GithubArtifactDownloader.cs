@@ -53,15 +53,6 @@ namespace MSFSModManager.Core.PackageSources.Github
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
                 using (HttpResponseMessage response = await _client.SendAsync(request, HttpCompletionOption.ResponseContentRead))
                 {
-
-                    // HttpResponseMessage response = await _client.GetAsync(_url, HttpCompletionOption.ResponseHeadersRead);
-
-                    GlobalLogger.Log(LogLevel.Warning, $"{response.StatusCode}");
-                    GlobalLogger.Log(LogLevel.Warning, "################################");
-                    GlobalLogger.Log(LogLevel.Warning, response.Headers.ToString());
-                    GlobalLogger.Log(LogLevel.Warning, "################################");
-                    GlobalLogger.Log(LogLevel.Warning, response.Content.Headers.ToString());
-
                     response.EnsureSuccessStatusCode();
 
                     IDownloadProgressMonitor downloadMonitor;

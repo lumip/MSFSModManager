@@ -25,13 +25,18 @@ namespace MSFSModManager.Core
             {
                 if (((IncrementedVersionNumber)other)._baseVersion.Equals(_baseVersion)) return 0;
             }
-            if (_baseVersion.CompareTo(other) < 1) return -1;
+            if (_baseVersion.CompareTo(other) < 0) return -1;
             return 1;
         }
 
         public IVersionNumber Increment()
         {
             return new IncrementedVersionNumber(this);
+        }
+
+        public override string ToString()
+        {
+            return $"Incremented({_baseVersion})";
         }
     }
 
@@ -49,13 +54,13 @@ namespace MSFSModManager.Core
 
         public int CompareTo(GitCommitVersionNumber other)
         {
-            return _date.CompareTo(other);
+            return _date.CompareTo(other._date);
         }
 
         public int CompareTo(IVersionNumber other)
         {
             if (other is VersionNumber) return 1;
-            if (other is GitCommitVersionNumber) CompareTo((GitCommitVersionNumber)other);
+            if (other is GitCommitVersionNumber) return CompareTo((GitCommitVersionNumber)other);
             return -other.CompareTo(this);
         }
 

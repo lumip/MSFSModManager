@@ -66,7 +66,7 @@ namespace MSFSModManager.Core
                 }
                 catch (ManifestParsingException e)
                 {
-                    GlobalLogger.Log(LogLevel.Warning, $"Parsing error: {e.Id}");
+                    GlobalLogger.Log(LogLevel.Warning, $"Could not read manifest for {e.Id} ({e.InnerException.Message}).");
                     _erroredManifests.Add(e.Id);
                     continue;
                 }
@@ -160,9 +160,15 @@ namespace MSFSModManager.Core
         {
             string packagePath = _packages[installer.PackageId].PackagePath;
             string fullPackagePath = Path.Join(_installationPath, packagePath);
+            if (File.Exists(Path.Join(fullPackagePath, PackageDirectoryLayout.ManifestFile)))
+            {
+                GlobalLogger.Log(LogLevel.Info, $"Removing previous installation of {installer.PackageId}.");
+                Uninstall(installer.PackageId);
+            }
             try
             {
                 await installer.Install(fullPackagePath, monitor);
+                GlobalLogger.Log(LogLevel.Info, $"Installation of {installer.PackageId} completed.");
             }
             catch (Exception e)
             {

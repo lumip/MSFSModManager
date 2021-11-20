@@ -27,7 +27,6 @@ namespace MSFSModManager.Core.PackageSources.Github
             _branch = branchName;
             _cache = cache;
             _client = client;
-            _lastReturned = null;
         }
 
         private List<GithubAPI.Commit>? _branchCommits;
@@ -41,72 +40,35 @@ namespace MSFSModManager.Core.PackageSources.Github
             return _branchCommits;
         }
 
-        private GithubAPI.Commit? _lastReturned; // todo: this is to remember which actual commit was (last) checked in dependency resolution (and is therefore the correct one).
-        // GetInstaller will get the version number from the manifest, which will not be indicative of the commit!
-        // HACKY WORKAROUND THAT MAY BREAK
-
         public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
         {
-            GlobalLogger.Log(LogLevel.Info, versionNumber.ToString());
-            GlobalLogger.Log(LogLevel.Warning, "Installing from github branch does not check version bounds, will install latest commit!");
+            if (!(versionNumber is GitCommitVersionNumber))
+            {
+                throw new VersionNotAvailableException(_packageId, versionNumber);
+            }
             
-            if (!_lastReturned.HasValue) throw new VersionNotAvailableException(_packageId, versionNumber);
+            string commitSha = ((GitCommitVersionNumber)versionNumber).Commit;
 
-            GithubAPI.Commit commit = _lastReturned.Value;
-
-            string downloadUrl = $"https://api.github.com/repos/{_repository.Organisation}/{_repository.Name}/zipball/{commit.Sha}";
+            string downloadUrl = $"https://api.github.com/repos/{_repository.Organisation}/{_repository.Name}/zipball/{commitSha}";
             GithubArtifactDownloader downloader = new GithubArtifactDownloader(
                 _packageId, versionNumber, _repository, downloadUrl, _client, _cache
             );
             return new GithubReleasePackageInstaller(downloader);
-
-            // if (_releaseCache.ContainsKey(versionNumber))
-            // {
-            //     CachedRelease cachedRelease = _releaseCache[versionNumber];
-            //     GithubReleaseDownloader downloader = new GithubReleaseDownloader(
-            //         _packageId, versionNumber, _repository, cachedRelease.DownloadUrl, _client, _cache
-            //     );
-            //     return new GithubReleasePackageInstaller(downloader);
-            // }
-            // else
-            // {
-            //     IEnumerable<GithubAPI.Release> releases = FetchGithubReleases().Result;
-            //     foreach (GithubAPI.Release release in releases)
-            //     {
-            //         VersionNumber releaseVersion;
-            //         try
-            //         {
-            //             releaseVersion = VersionNumber.FromString(release.Name);
-            //         }
-            //         catch (FormatException)
-            //         {
-            //             GlobalLogger.Log(LogLevel.Info, $"Cannot parse version number of github release {release.Name} ({_packageId})");
-            //             continue;
-            //         }
-            //         if (versionNumber.Equals(releaseVersion))
-            //         {
-            //             GithubReleaseDownloader downloader = new GithubReleaseDownloader(
-            //                 _packageId, versionNumber, _repository, release.DownloadUrl, _client, _cache
-            //             );
-            //             return new GithubReleasePackageInstaller(downloader);
-            //         }
-            //     }
-            //     throw new VersionNotAvailableException(_packageId, new VersionBounds(versionNumber));
-            // }
         }
 
         public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor = null)
         {
             foreach (var commit in await FetchCommits())
             {
-                if (!versionBounds.CheckVersion(new GitCommitVersionNumber(commit.Sha, commit.Date)))
+                GitCommitVersionNumber version = new GitCommitVersionNumber(commit.Sha, commit.Date);
+                if (!versionBounds.CheckVersion(version))
                     continue;
 
                 string rawManifest = await GithubAPI.GetManifestString(_repository, commit.Sha);
                 PackageManifest manifest;
                 try
                 {
-                    manifest = PackageManifest.Parse(_packageId, rawManifest);
+                    manifest = PackageManifest.Parse(_packageId, rawManifest, sourceVersion: version);
                 }
                 catch (ArgumentException)
                 {
@@ -119,7 +81,6 @@ namespace MSFSModManager.Core.PackageSources.Github
                     GlobalLogger.Log(LogLevel.Info, $"{_packageId} branch {_branch} (latest commit: {commit.Sha} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
                     throw new PackageNotAvailableException(_packageId);
                 }
-                _lastReturned = commit;
                 return manifest;
             }
             throw new VersionNotAvailableException(_packageId, versionBounds);
