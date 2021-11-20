@@ -58,6 +58,8 @@ This source type does not have any `SourceOption`s.
 
 Example: `fsmodm add-source B78XH https://github.com/Heavy-Division/B78XH@main` registers a source for the latest development state in the `main` branch of the B78XH mod.
 
+**Note**: Installing from github branches only works if the branch contains a correct package manifest file (`manifest.json`) and will install only the contents of the folder containing the manifest file (including all subdirectories).
+
 ### Install/Uninstall a package
 
 ```
