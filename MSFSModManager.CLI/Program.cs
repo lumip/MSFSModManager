@@ -88,14 +88,13 @@ namespace MSFSModManager.CLI
             }
             else
             {
-                string localApps = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                string cfgPath = Path.Join(localApps, "Packages", "Microsoft.FlightSimulator_8wekyb3d8bbwe", "LocalCache", "UserCfg.opt");
                 try
                 {
-                    contentPath = ConfigReader.ReadContentPathFromConfig(cfgPath);
+                    contentPath = ConfigReader.ReadContentPathFromDefaultLocations();
                 }
-                catch (Exception e) when (e is DirectoryNotFoundException || e is FileNotFoundException)
+                catch (FileNotFoundException)
                 {
+                    // development fallback!
                     contentPath = ConfigReader.ReadContentPathFromConfig(@"/media/data/MSFSData/UserCfg.opt");
                 }
             }

@@ -16,9 +16,30 @@ namespace MSFSModManager.Core
     public class ConfigReader
     {
 
+        public static string ReadContentPathFromDefaultLocations()
+        {
+            string localAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
 
-        //         const steamMsfsPath = app.getPath('appData') + "\\Microsoft Flight Simulator\\UserCfg.opt";
-        // const msStoreMsfsPath = app.getPath('home') + "\\AppData\\Local\\Packages\\Microsoft.FlightSimulator_8wekyb3d8bbwe\\LocalCache\\UserCfg.opt";
+            string microsoftStoreConfigPath = Path.Join(
+                localAppDataPath, "Packages", "Microsoft.FlightSimulator_8wekyb3d8bbwe"
+            );
+            microsoftStoreConfigPath = Path.Join(microsoftStoreConfigPath, "LocalCache", "UserCfg.opt");
+
+            string steamConfigPath = Path.Join(
+                appDataPath, "Microsoft Flight Simulator", "UserCfg.opt"
+            );
+
+            if (File.Exists(microsoftStoreConfigPath))
+            {
+                return ReadContentPathFromConfig(microsoftStoreConfigPath);
+            }
+            else if (File.Exists(steamConfigPath))
+            {
+                return ReadContentPathFromConfig(steamConfigPath);
+            }
+            throw new FileNotFoundException("No config file could be found at any of the default paths.");
+        }
 
         public static string ReadContentPathFromConfig(string configFilePath)
         {
