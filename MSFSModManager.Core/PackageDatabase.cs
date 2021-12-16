@@ -205,6 +205,15 @@ namespace MSFSModManager.Core
             {
                 dir.Delete(recursive: true);
             }
+
+            try
+            {
+                packageDirectory.Delete();
+            }
+            catch (IOException)
+            {
+                // ignore: directory was not empty, which can happen if we retained the package source file
+            }
         }
 
         public void RemovePackageSource(string packageId)
