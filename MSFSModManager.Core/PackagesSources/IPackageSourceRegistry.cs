@@ -6,6 +6,9 @@ using Newtonsoft.Json.Linq;
 
 namespace MSFSModManager.Core.PackageSources
 {
+    /// <summary>
+    /// Registry/Factory for package source types; Parses URLs / source strings into IPackageSource objects.
+    /// </summary>
     public interface IPackageSourceRegistry
     {
         IPackageSource Deserialize(string packageId, JToken serialized);

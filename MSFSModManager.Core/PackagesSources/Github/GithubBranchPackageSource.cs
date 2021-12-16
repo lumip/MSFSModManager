@@ -14,8 +14,6 @@ namespace MSFSModManager.Core.PackageSources.Github
 {
     public class GithubBranchPackageSource : AbstractPackageSource
     {
-        private string _packageId;
-
         private GithubRepository _repository;
         private string _branch;
 
@@ -23,9 +21,11 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         private HttpClient _client;
 
+        public override string PackageId { get; }
+
         public GithubBranchPackageSource(string packageId, GithubRepository repository, string branchName, PackageCache cache, HttpClient client)
         {
-            _packageId = packageId;
+            PackageId = packageId;
             _repository = repository;
             _branch = branchName;
             _cache = cache;
@@ -47,14 +47,14 @@ namespace MSFSModManager.Core.PackageSources.Github
         {
             if (!(versionNumber is GitCommitVersionNumber))
             {
-                throw new VersionNotAvailableException(_packageId, versionNumber);
+                throw new VersionNotAvailableException(PackageId, versionNumber);
             }
             
             string commitSha = ((GitCommitVersionNumber)versionNumber).Commit;
 
             string downloadUrl = $"https://api.github.com/repos/{_repository.Organisation}/{_repository.Name}/zipball/{commitSha}";
             GithubArtifactDownloader downloader = new GithubArtifactDownloader(
-                _packageId, versionNumber, _repository, downloadUrl, _client, _cache
+                PackageId, versionNumber, _repository, downloadUrl, _client, _cache
             );
             return new GithubReleasePackageInstaller(downloader);
         }
@@ -71,22 +71,22 @@ namespace MSFSModManager.Core.PackageSources.Github
                 PackageManifest manifest;
                 try
                 {
-                    manifest = PackageManifest.Parse(_packageId, rawManifest, sourceVersion: version);
+                    manifest = PackageManifest.Parse(PackageId, rawManifest, sourceVersion: version);
                 }
                 catch (ArgumentException)
                 {
-                    GlobalLogger.Log(LogLevel.CriticalError, $"Manifest for {_packageId} github commit {commit.Sha} does not provide a version number.");
-                    throw new PackageNotAvailableException(_packageId);
+                    GlobalLogger.Log(LogLevel.CriticalError, $"Manifest for {PackageId} github commit {commit.Sha} does not provide a version number.");
+                    throw new PackageNotAvailableException(PackageId);
                 }
 
                 if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
                 {
-                    GlobalLogger.Log(LogLevel.Info, $"{_packageId} branch {_branch} (latest commit: {commit.Sha} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
-                    throw new PackageNotAvailableException(_packageId);
+                    GlobalLogger.Log(LogLevel.Info, $"{PackageId} branch {_branch} (latest commit: {commit.Sha} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
+                    throw new PackageNotAvailableException(PackageId);
                 }
                 return manifest;
             }
-            throw new VersionNotAvailableException(_packageId, versionBounds);
+            throw new VersionNotAvailableException(PackageId, versionBounds);
         }
 
         public override string ToString()

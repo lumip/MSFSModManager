@@ -17,5 +17,7 @@ namespace MSFSModManager.Core.PackageSources
         public abstract JToken Serialize();
 
         public abstract Task<IEnumerable<IVersionNumber>> ListAvailableVersions();
+
+        public abstract string PackageId { get; }
     }
 }

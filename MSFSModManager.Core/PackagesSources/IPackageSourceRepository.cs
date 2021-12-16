@@ -7,10 +7,15 @@ using System.Threading.Tasks;
 namespace MSFSModManager.Core.PackageSources
 {
 
+    /// <summary>
+    /// A repository that hosts several package sources combined.
+    /// </summary>
     public interface IPackageSourceRepository
     {
         Task<IEnumerable<string>> ListAvailablePackages();
 
         IPackageSource GetSource(string packageId);
+
+        bool HasSource(string packageId);
     }
 }

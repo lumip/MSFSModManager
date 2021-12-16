@@ -46,6 +46,8 @@ namespace MSFSModManager.Core.PackageSources
         {
             throw new System.NotImplementedException();
         }
+
+        public override string PackageId => _installedPackage.Id;
     }
 
 }

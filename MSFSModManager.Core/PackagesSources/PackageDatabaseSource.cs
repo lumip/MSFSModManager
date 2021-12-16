@@ -28,11 +28,23 @@ namespace MSFSModManager.Core.PackageSources
 
         public IPackageSource GetSource(string packageId)
         {
-            InstalledPackage package = _database.GetInstalledPackage(packageId);
-            if (package.PackageSource == null)
-                return new LocallyInstalledPackageSource(package);
-            IPackageSource source = package.PackageSource;
-            return source;
+            try
+            {
+                InstalledPackage package = _database.GetInstalledPackage(packageId);
+                if (package.PackageSource == null)
+                    return new LocallyInstalledPackageSource(package);
+                IPackageSource source = package.PackageSource;
+                return source;
+            }
+            catch (KeyNotFoundException)
+            {
+                throw new PackageNotAvailableException(packageId);
+            }
+        }
+
+        public bool HasSource(string packageId)
+        {
+            return _database.Contains(packageId);
         }
     }
 }

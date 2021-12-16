@@ -27,6 +27,12 @@ namespace MSFSModManager.Core
             return _repository.GetSource(packageId);
         }
 
+        public bool HasSource(string packageId)
+        {
+            if (packageId.StartsWith("fs-base")) return true;
+            return _repository.HasSource(packageId);
+        }
+
         public Task<IEnumerable<string>> ListAvailablePackages()
         {
             return _repository.ListAvailablePackages();

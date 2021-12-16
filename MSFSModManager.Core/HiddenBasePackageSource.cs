@@ -12,11 +12,11 @@ namespace MSFSModManager.Core
 {
     public class HiddenBasePackageSource : AbstractPackageSource
     {
-        private string _packageId;
+        public override string PackageId { get; }
 
         public HiddenBasePackageSource(string packageId)
         {
-            _packageId = packageId;
+            PackageId = packageId;
         }
 
         public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
@@ -32,7 +32,7 @@ namespace MSFSModManager.Core
                 versionNumber = VersionNumber.Zero;
             }
             PackageManifest manifest = new PackageManifest(
-                _packageId, _packageId, versionNumber, VersionNumber.Zero, "BASE", new PackageDependency[0], "asobo"
+                PackageId, PackageId, versionNumber, VersionNumber.Zero, "BASE", new PackageDependency[0], "asobo"
             );
             return Task.FromResult(manifest);
         }
@@ -46,6 +46,7 @@ namespace MSFSModManager.Core
         {
             throw new NotImplementedException();
         }
+
     }
 
 }

@@ -35,7 +35,7 @@ namespace MSFSModManager.Core.PackageSources.Github
         
         private PackageCache _cache;
 
-        private string _packageId;
+        public override string PackageId { get; }
 
         private List<GithubAPI.Release>? _githubReleases;
 
@@ -56,7 +56,7 @@ namespace MSFSModManager.Core.PackageSources.Github
             string packageId, GithubRepository repository, PackageCache cache, HttpClient client, IGithubReleaseArtifactSelector artifactSelector
         )
         {
-            _packageId = packageId;
+            PackageId = packageId;
             _repository = repository;
             _cache = cache;
             _releaseCache = new Dictionary<VersionNumber, CachedRelease>();
@@ -74,7 +74,7 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
         {
-            if (!(versionNumber is VersionNumber)) throw new VersionNotAvailableException(_packageId, versionNumber);
+            if (!(versionNumber is VersionNumber)) throw new VersionNotAvailableException(PackageId, versionNumber);
             return GetInstaller((VersionNumber)versionNumber);
         }
 
@@ -84,7 +84,7 @@ namespace MSFSModManager.Core.PackageSources.Github
             {
                 CachedRelease cachedRelease = _releaseCache[versionNumber];
                 GithubArtifactDownloader downloader = new GithubArtifactDownloader(
-                    _packageId, versionNumber, _repository, cachedRelease.DownloadUrl, _client, _cache
+                    PackageId, versionNumber, _repository, cachedRelease.DownloadUrl, _client, _cache
                 );
                 return new GithubReleasePackageInstaller(downloader);
             }
@@ -100,18 +100,18 @@ namespace MSFSModManager.Core.PackageSources.Github
                     }
                     catch (FormatException)
                     {
-                        GlobalLogger.Log(LogLevel.Info, $"Cannot parse version number of github release {release.Name} ({_packageId})");
+                        GlobalLogger.Log(LogLevel.Info, $"Cannot parse version number of github release {release.Name} ({PackageId})");
                         continue;
                     }
                     if (versionNumber.Equals(releaseVersion))
                     {
                         GithubArtifactDownloader downloader = new GithubArtifactDownloader(
-                            _packageId, versionNumber, _repository, release.DownloadUrl, _client, _cache
+                            PackageId, versionNumber, _repository, release.DownloadUrl, _client, _cache
                         );
                         return new GithubReleasePackageInstaller(downloader);
                     }
                 }
-                throw new VersionNotAvailableException(_packageId, new VersionBounds(versionNumber));
+                throw new VersionNotAvailableException(PackageId, new VersionBounds(versionNumber));
             }
         }
 
@@ -145,7 +145,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                 }
                 catch (FormatException)
                 {
-                    GlobalLogger.Log(LogLevel.Info, $"Cannot parse version number of github release {release.Name} ({_packageId})");
+                    GlobalLogger.Log(LogLevel.Info, $"Cannot parse version number of github release {release.Name} ({PackageId})");
                     continue;
                 }
                 string cacheId = $"{_repository.Organisation}_{_repository.Name}";
@@ -156,11 +156,11 @@ namespace MSFSModManager.Core.PackageSources.Github
                     try
                     {
                         string rawManifest = await GithubAPI.GetManifestString(_repository, commitSha);
-                        PackageManifest manifest = PackageManifest.Parse(_packageId, rawManifest, releaseVersion);
+                        PackageManifest manifest = PackageManifest.Parse(PackageId, rawManifest, releaseVersion);
 
                         if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
                         {
-                            GlobalLogger.Log(LogLevel.Info, $"{_packageId} v{releaseVersion} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
+                            GlobalLogger.Log(LogLevel.Info, $"{PackageId} v{releaseVersion} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
                             continue;
                         }
 
@@ -177,15 +177,15 @@ namespace MSFSModManager.Core.PackageSources.Github
                         }
                         else
                         {
-                            var downloader = new GithubArtifactDownloader(_packageId, releaseVersion, _repository, release.DownloadUrl, _client, _cache);
+                            var downloader = new GithubArtifactDownloader(PackageId, releaseVersion, _repository, release.DownloadUrl, _client, _cache);
                             packageFolder = await downloader.DownloadToCache(monitor);
                         }
                         string manifestFilePath = LocateManifest(packageFolder);
-                        PackageManifest manifest = PackageManifest.FromFile(_packageId, manifestFilePath);
+                        PackageManifest manifest = PackageManifest.FromFile(PackageId, manifestFilePath);
 
                         if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
                         {
-                            GlobalLogger.Log(LogLevel.Info, $"{_packageId} v{releaseVersion} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
+                            GlobalLogger.Log(LogLevel.Info, $"{PackageId} v{releaseVersion} requires game version {manifest.MinimumGameVersion}, installed is {gameVersion}; skipping.");
                             continue;
                         }
 
@@ -194,7 +194,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                     }
                 }
             }
-            throw new VersionNotAvailableException(_packageId, versionBounds);
+            throw new VersionNotAvailableException(PackageId, versionBounds);
         }
 
         public override JToken Serialize()
@@ -234,5 +234,6 @@ namespace MSFSModManager.Core.PackageSources.Github
         {
             return (await FetchGithubReleases()).Select(r => VersionNumber.FromString(r.Name));
         }
+
     }
 }
