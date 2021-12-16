@@ -71,6 +71,14 @@ Installs/removes a package (mod). This requires an installation source to have b
 Installation will always select to last compatible available version of the package. If the package is already installed,
 it will be replaced if a newer version is found.
 
+### Install package without storing package source
+
+```
+fsmodm install <PackageId> <SourceURL> [<SourceOptions>]
+```
+
+Installs a package (mod) from the given installation source without persisting information about the source.
+
 ### Update all packages
 
 ```

@@ -194,7 +194,6 @@ namespace MSFSModManager.CLI
         static ReturnCode AddSource(string contentPath, string[] args)
         {
             string packageId = args[1];
-            string packageSourceUrl = args[2];
             string[] sourceStrings = args.Skip(2).ToArray();
             return AddSource(contentPath, packageId, sourceStrings);
         }
@@ -226,7 +225,12 @@ namespace MSFSModManager.CLI
         static ReturnCode Install(string contentPath, string[] args)
         {
             string packageId = args[1];
-            return Install(contentPath, packageId);
+            if (args.Length > 2)
+            {
+                string[] sourceStrings = args.Skip(2).ToArray();
+                return InstallFromGivenSource(contentPath, packageId, sourceStrings);
+            }
+            return InstallFromKnownSource(contentPath, packageId);
         }
 
         static ConsoleStatusLines statusLines = new ConsoleStatusLines(renderer);
@@ -268,7 +272,7 @@ namespace MSFSModManager.CLI
             }
         }
 
-        static ReturnCode Install(string contentPath, string packageId)
+        static ReturnCode InstallFromKnownSource(string contentPath, string packageId)
         {
             (IPackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
 
@@ -317,6 +321,26 @@ namespace MSFSModManager.CLI
                 IPackageInstaller installer = source.GetSource(package.Id).GetInstaller(package.SourceVersion);
                 
                 database.InstallPackage(installer, monitor).Wait();
+            }
+
+            return ReturnCode.Success;
+        }
+
+        static ReturnCode InstallFromGivenSource(string contentPath, string packageId, string[] sourceStrings)
+        {
+            (IPackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
+
+            IPackageSource source = ((PackageDatabase)database).SourceRegistry.ParseSourceStrings(packageId, sourceStrings);
+            GlobalLogger.Log(LogLevel.Info, $"Installing {packageId} from source {source} without storing source for future use!");
+
+            database.AddPackageSource(packageId, source);
+            try
+            {
+                InstallFromKnownSource(contentPath, packageId);
+            }
+            finally
+            {
+                database.RemovePackageSource(packageId);
             }
 
             return ReturnCode.Success;
