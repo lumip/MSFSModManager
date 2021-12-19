@@ -172,5 +172,11 @@ namespace MSFSModManager.Core
 
             return Parse(id, manifestText);
         }
+
+        public static PackageManifest FromStream(string id, Stream stream)
+        {
+            string manifestText = new StreamReader(stream).ReadToEnd();
+            return Parse(id, manifestText);
+        }
     }
 }

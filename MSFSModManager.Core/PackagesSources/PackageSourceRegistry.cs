@@ -3,6 +3,7 @@
 
 using System;
 using System.Net.Http;
+using System.IO;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -36,6 +37,8 @@ namespace MSFSModManager.Core.PackageSources
                     return GithubReleasePackageSource.Deserialize(packageId, serialized["data"]!, _cache, _client);
                 case nameof(GithubBranchPackageSource):
                     return GithubBranchPackageSource.Deserialize(packageId, serialized["data"]!, _cache, _client);
+                case nameof(ZipFilePackageSource):
+                    return ZipFilePackageSource.Deserialize(packageId, serialized["data"]!);
                 default:
                     throw new ArgumentException();
             }
@@ -44,33 +47,21 @@ namespace MSFSModManager.Core.PackageSources
         public static JToken Serialize(IPackageSource source)
         {
             JObject obj = new JObject();
-            if (source is GithubReleasePackageSource)
-            {
-                obj.Add("type", nameof(GithubReleasePackageSource));
-                obj.Add("data", source.Serialize());
-            }
-            else if (source is GithubBranchPackageSource)
-            {
-                obj.Add("type", nameof(GithubBranchPackageSource));
-                obj.Add("data", source.Serialize());
-            }
-            else
-            {
-                throw new ArgumentException("Unknown source type.", nameof(source));
-            }
+            obj.Add("type", source.GetType().Name);
+            obj.Add("data", source.Serialize());
             return obj;
         }
 
         public IPackageSource ParseSourceStrings(string packageId, string[] sourceString)
         {
-            string url = sourceString[0];
-            if (url.Contains("github.com"))
+            string uri = sourceString[0];
+            if (uri.Contains("github.com"))
             {
-                if (url.Contains('@'))
+                if (uri.Contains('@'))
                 {
-                    string[] urlSplits = url.Split('@', 2);
-                    GithubRepository repository = GithubRepository.FromUrl(urlSplits[0]);
-                    string branch = urlSplits[1];
+                    string[] uriSplits = uri.Split('@', 2);
+                    GithubRepository repository = GithubRepository.FromUrl(uriSplits[0]);
+                    string branch = uriSplits[1];
                     return new GithubBranchPackageSource(packageId, repository, branch, _cache, _client);
                 }
                 else
@@ -80,24 +71,15 @@ namespace MSFSModManager.Core.PackageSources
                     {
                         artifactSelector = new RegexArtifactSelector(sourceString[1]);
                     }
-                    return new GithubReleasePackageSource(packageId, GithubRepository.FromUrl(url), _cache, _client, artifactSelector);
+                    return new GithubReleasePackageSource(packageId, GithubRepository.FromUrl(uri), _cache, _client, artifactSelector);
                 }
             }
-            throw new ArgumentException();
-        }
-
-        public IPackageSource GetSourceForURL(string packageId, string url, HttpClient client)
-        {
-            if (url.Contains("github.com"))
+            else if (new Uri(uri).IsFile)
             {
-                // if (url.Contains('@'))
-                // {
-                //     return new GithubBranchPackageSource();
-                // }
-                // else
-                // {
-                return new GithubReleasePackageSource(packageId, GithubRepository.FromUrl(url), _cache, client);
-                // }
+                if (uri.EndsWith(".zip"))
+                {
+                    return new ZipFilePackageSource(packageId, uri);
+                }
             }
             throw new ArgumentException();
         }

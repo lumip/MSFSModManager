@@ -60,6 +60,16 @@ Example: `fsmodm add-source B78XH https://github.com/Heavy-Division/B78XH@main` 
 
 **Note**: Installing from github branches only works if the branch contains a correct package manifest file (`manifest.json`) and will install only the contents of the folder containing the manifest file (including all subdirectories).
 
+#### Local ZIP file
+
+Uses a local ZIP file of a package as a package installation source. In this case, `SourceURL` is a local file path.
+
+Example: `fsmodm add-source B78XH Downloads\B78XH-v0.1.12.zip`.
+
+**Note**: This will automatically locate the relative path of the `manifest.json` file within the archive and install
+all files under that path during package installation, i.e., it will ignore all files in the archive that are not under
+the same directory as the manifest file and remove path prefixes.
+
 ### Install/Uninstall a package
 
 ```

@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Linq;
-using System.IO.Compression;
 
 namespace MSFSModManager.Core.PackageSources.Github
 {
@@ -88,6 +87,14 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
+        private void ExtractArchive(string archiveFilePath, string destination)
+        {
+            using (ZipPackageArchive archive = new ZipPackageArchive(archiveFilePath))
+            {
+                archive.Extract(destination);
+            }
+        }
+
         public async Task<string> DownloadToCache(IProgressMonitor? monitor = null)
         {
             string archiveFilePath = await DownloadToFile(monitor);
@@ -96,7 +103,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                 string packageFolder = Cache.AddCacheEntry(CacheId, Version);
                 
                 monitor?.ExtractionStarted(PackageId, Version);
-                ZipFile.ExtractToDirectory(archiveFilePath, packageFolder);
+                await Task.Run(() => ExtractArchive(archiveFilePath, packageFolder));
                 monitor?.ExtractionCompleted(PackageId, Version);
                 return packageFolder;
             }

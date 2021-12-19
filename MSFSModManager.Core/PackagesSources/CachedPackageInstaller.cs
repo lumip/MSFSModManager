@@ -2,7 +2,6 @@
 // Copyright 2021 Lukas <lumip> Prediger
 
 using System.IO;
-using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace MSFSModManager.Core.PackageSources
@@ -36,10 +35,9 @@ namespace MSFSModManager.Core.PackageSources
             }
         }
 
-        public Task Install(string destination, IProgressMonitor? monitor)
+        public async Task Install(string destination, IProgressMonitor? monitor)
         {
-            CopyDirectory(_sourcePath, destination);
-            return Task.CompletedTask;
+            await Task.Run(() => CopyDirectory(_sourcePath, destination));
         }
     }
 
