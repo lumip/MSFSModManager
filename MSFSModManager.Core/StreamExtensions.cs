@@ -8,9 +8,18 @@ using System;
 
 namespace MSFSModManager.Core
 {
+
+    /// <summary>
+    /// Extension methods for Stream.
+    /// </summary>
     public static class StreamExtensions
     {
-        public static async Task CopyToAsync(this Stream source, Stream destination, IProgress<long> progress, CancellationToken cancellationToken = default(CancellationToken), int bufferSize = 0x1000)
+        /// <summary>
+        /// Asynchronous version of CopyTo.
+        /// </summary>
+        public static async Task CopyToAsync(
+            this Stream source, Stream destination, IProgress<long> progress, CancellationToken cancellationToken = default(CancellationToken), int bufferSize = 0x1000
+        )
         {
             var buffer = new byte[bufferSize];
             int bytesRead;

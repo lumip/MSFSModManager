@@ -5,14 +5,6 @@ using System;
 
 namespace MSFSModManager.Core
 {
-
-    public class UnsatisfiableBoundsException : Exception
-    {
-        public UnsatisfiableBoundsException(IVersionNumber lower, IVersionNumber upper)
-            : base($"Version bounds unsatisfiable (>={lower}, < {upper}.")
-        { }
-    }
-    
     public class VersionBounds
     {
         public IVersionNumber Lower { get; private set; }
@@ -56,5 +48,4 @@ namespace MSFSModManager.Core
             return $">={Lower}, <{Upper}";
         }
     }
-
 }

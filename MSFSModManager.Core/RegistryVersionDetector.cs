@@ -13,6 +13,9 @@ namespace MSFSModManager.Core
         VersionNumber Version { get; }
     }
 
+    /// <summary>
+    /// Detector of the Flight Simulator game version using the Windows registry.
+    /// </summary>
     public class RegistryVersionDetector : IGameVersionDetector
     {
         public VersionNumber Version { get; }

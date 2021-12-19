@@ -44,7 +44,7 @@ namespace MSFSModManager.Core
 
         public override JToken Serialize()
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException();
         }
 
     }

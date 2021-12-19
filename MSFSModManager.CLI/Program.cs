@@ -18,6 +18,8 @@ namespace MSFSModManager.CLI
 
         static ConsoleRenderer renderer = new ConsoleRenderer();
 
+        static ConsoleStatusLines statusLines = new ConsoleStatusLines(renderer);
+
         static IVersionNumber gameVersion = VersionNumber.Infinite;
 
         enum ReturnCode
@@ -107,7 +109,7 @@ namespace MSFSModManager.CLI
             catch (Exception e)
             {
                 GlobalLogger.Log(LogLevel.Error, "Could not detect game version, assuming latest! This is caused by error:");
-                GlobalLogger.Log(LogLevel.Error, $"{e}");
+                GlobalLogger.Log(LogLevel.Error, $"{e.Message}");
             }
 
             
@@ -233,45 +235,6 @@ namespace MSFSModManager.CLI
             return InstallFromKnownSource(contentPath, packageId);
         }
 
-        static ConsoleStatusLines statusLines = new ConsoleStatusLines(renderer);
-
-        class ConsoleProgressMonitor : IProgressMonitor
-        {
-            public void DownloadStarted(IDownloadProgressMonitor monitor)
-            {
-                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(monitor.PackageId);
-
-                ProgressBar bar = new ProgressBar($"downloading {monitor.PackageId} {monitor.Version}", $"{monitor.TotalSize / (1024*1024)} MB", line);
-                bar.Render();
-                monitor.UserData = bar;
-                monitor.DownloadProgress += OnDownloadProgress;
-            }
-
-            void OnDownloadProgress(IDownloadProgressMonitor monitor)
-            {
-                ProgressBar bar = (ProgressBar)monitor.UserData!;
-            
-                bar.Update(monitor.CurrentPercentage);
-                bar.Render();
-            }
-
-            public void ExtractionCompleted(string packageId, IVersionNumber versionNumber)
-            {
-                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(packageId);
-                
-                line.Clear();
-                line.Write($"Extracting {packageId} {versionNumber} completed.");
-            }
-
-            public void ExtractionStarted(string packageId, IVersionNumber versionNumber)
-            {
-                ConsoleRenderer.LineHandle line = statusLines.GetLineHandle(packageId);
-
-                line.Clear();
-                line.Write($"Extracting {packageId} {versionNumber} ...");
-            }
-        }
-
         static ReturnCode InstallFromKnownSource(string contentPath, string packageId)
         {
             (IPackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
@@ -285,7 +248,7 @@ namespace MSFSModManager.CLI
             };
 
             IPackageSourceRepository source = new HiddenBasePackageSourceRepositoryDecorator(new PackageDatabaseSource(database));
-            var monitor = new ConsoleProgressMonitor();
+            var monitor = new ConsoleProgressMonitor(statusLines);
 
             IEnumerable<PackageManifest> toInstall;
             try
@@ -410,7 +373,7 @@ namespace MSFSModManager.CLI
 
             IPackageSourceRepository source = new HiddenBasePackageSourceRepositoryDecorator(new PackageDatabaseSource(database));
 
-            var monitor = new ConsoleProgressMonitor();
+            var monitor = new ConsoleProgressMonitor(statusLines);
 
             IEnumerable<PackageManifest> toInstall;
             try

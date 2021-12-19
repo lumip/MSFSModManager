@@ -6,7 +6,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Net.Http;
+using System.Diagnostics;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -79,7 +79,6 @@ namespace MSFSModManager.Core
                 if (File.Exists(packageSourceFilePath))
                 {
                     string packageSourceJson = File.ReadAllText(packageSourceFilePath);
-                    // PackageSourceSerializationData packageSourceData = JsonConvert.DeserializeObject<PackageSourceSerializationData>(packageSourceJson)!;
                     packageSource = packageSourceRegistry.Deserialize(packageId, JToken.Parse(packageSourceJson));
                 }
                 _packages.Add(packageId, new InstalledPackage(packageId, packagePath, manifest, packageSource));
@@ -96,8 +95,7 @@ namespace MSFSModManager.Core
 
                 string packageId = PackageDirectoryLayout.GetPackageId(file.FullName);
                 string packageSourceJson = File.ReadAllText(file.FullName);
-                // PackageSourceSerializationData packageSourceData = JsonConvert.DeserializeObject<PackageSourceSerializationData>(packageSourceJson)!;
-                // IPackageSource packageSource = packageSourceRegistry.Deserialize(packageId, packageSourceData);
+
                 IPackageSource packageSource = packageSourceRegistry.Deserialize(packageId, JToken.Parse(packageSourceJson));
                 _packages.Add(packageId, new InstalledPackage(packageId, packagePath, null, packageSource));
             }

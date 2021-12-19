@@ -65,5 +65,10 @@ namespace MSFSModManager.Core.PackageSources
             string filePath = JsonUtils.Cast<string>(serialized);
             return new ZipFilePackageSource(packageId, filePath);
         }
+
+        public override string ToString()
+        {
+            return _filePath;
+        }
     }
 }

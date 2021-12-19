@@ -8,6 +8,11 @@ using MSFSModManager.Core.PackageSources;
 
 namespace MSFSModManager.Core
 {
+    /// <summary>
+    /// Database of locally installed and registered packages for MSFS Flight Simulator.
+    /// 
+    /// This is the in-program representation of the MSFS data folder.
+    /// </summary>
     public interface IPackageDatabase
     {
         IEnumerable<InstalledPackage> Packages { get; }
