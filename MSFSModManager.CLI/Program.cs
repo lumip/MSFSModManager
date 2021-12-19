@@ -17,7 +17,7 @@ namespace MSFSModManager.CLI
     {
 
         static ConsoleRenderer renderer = new ConsoleRenderer();
-
+        
         static ConsoleStatusLines statusLines = new ConsoleStatusLines(renderer);
 
         static IVersionNumber gameVersion = VersionNumber.Infinite;
@@ -204,7 +204,16 @@ namespace MSFSModManager.CLI
         {
             (PackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
 
-            IPackageSource source = database.SourceRegistry.ParseSourceStrings(packageId, sourceStrings);
+            IPackageSource source;
+            try
+            {
+                source = ((PackageDatabase)database).SourceRegistry.ParseSourceStrings(packageId, sourceStrings);
+            }
+            catch (ArgumentException)
+            {
+                GlobalLogger.Log(LogLevel.CriticalError, "Could not interpret source options: No handler for source type is known.");
+                return ReturnCode.ArgumentError;
+            }
 
             database.AddPackageSource(packageId, source);
             return ReturnCode.Success;
@@ -235,25 +244,19 @@ namespace MSFSModManager.CLI
             return InstallFromKnownSource(contentPath, packageId);
         }
 
-        static ReturnCode InstallFromKnownSource(string contentPath, string packageId)
+        static ReturnCode DoInstall(
+            IEnumerable<PackageDependency> installationCandidates,
+            IPackageDatabase database,
+            IPackageSourceRepository sourceRepository)
         {
-            (IPackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
-
-            database = new HiddenBasePackagesDatabase(database);
-
             GlobalLogger.Log(LogLevel.Info, "Resolving package dependencies:");
 
-            PackageDependency[] installationCandidates = new PackageDependency[] {
-                new PackageDependency(packageId, VersionBounds.Unbounded)
-            };
-
-            IPackageSourceRepository source = new HiddenBasePackageSourceRepositoryDecorator(new PackageDatabaseSource(database));
             var monitor = new ConsoleProgressMonitor(statusLines);
 
             IEnumerable<PackageManifest> toInstall;
             try
             {
-                toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, gameVersion, monitor).Result
+                toInstall = DependencyResolver.ResolveDependencies(installationCandidates, sourceRepository, gameVersion, monitor).Result
                     .Where(m => !database.Contains(m.Id, new VersionBounds(m.SourceVersion)));
             }
             catch (AggregateException e)
@@ -274,14 +277,13 @@ namespace MSFSModManager.CLI
                 GlobalLogger.Log(LogLevel.CriticalError, $"{innerException}");
                 return ReturnCode.UnknownError;
             }
-            
 
             GlobalLogger.Log(LogLevel.Info, "Installing packages:");
             foreach (var package in toInstall)
             {
                 GlobalLogger.Log(LogLevel.Info, $"{package.Id,-60} {package.Version,14}");
 
-                IPackageInstaller installer = source.GetSource(package.Id).GetInstaller(package.SourceVersion);
+                IPackageInstaller installer = sourceRepository.GetSource(package.Id).GetInstaller(package.SourceVersion);
                 
                 database.InstallPackage(installer, monitor).Wait();
             }
@@ -289,24 +291,49 @@ namespace MSFSModManager.CLI
             return ReturnCode.Success;
         }
 
+        static ReturnCode InstallFromKnownSource(string contentPath, string packageId)
+        {
+            (IPackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
+
+            database = new HiddenBasePackagesDatabase(database);
+
+            PackageDependency[] installationCandidates = new PackageDependency[] {
+                new PackageDependency(packageId, VersionBounds.Unbounded)
+            };
+
+            IPackageSourceRepository sourceRepository = new HiddenBasePackageSourceRepositoryDecorator(
+                new PackageDatabaseSource(database)
+            );
+
+            return DoInstall(installationCandidates, database, sourceRepository);
+        }
+
         static ReturnCode InstallFromGivenSource(string contentPath, string packageId, string[] sourceStrings)
         {
             (IPackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
 
-            IPackageSource source = ((PackageDatabase)database).SourceRegistry.ParseSourceStrings(packageId, sourceStrings);
-            GlobalLogger.Log(LogLevel.Info, $"Installing {packageId} from source {source} without storing source for future use!");
-
-            database.AddPackageSource(packageId, source);
+            IPackageSource source;
             try
             {
-                InstallFromKnownSource(contentPath, packageId);
+                source = ((PackageDatabase)database).SourceRegistry.ParseSourceStrings(packageId, sourceStrings);
             }
-            finally
+            catch (ArgumentException)
             {
-                database.RemovePackageSource(packageId);
+                GlobalLogger.Log(LogLevel.CriticalError, "Could not interpret source options: No handler for source type is known.");
+                return ReturnCode.ArgumentError;
             }
+            GlobalLogger.Log(LogLevel.Info, $"Installing {packageId} from source {source} without storing source for future use!");
 
-            return ReturnCode.Success;
+            PackageDependency[] installationCandidates = new PackageDependency[] {
+                new PackageDependency(packageId, VersionBounds.Unbounded)
+            };
+
+            IPackageSourceRepository sourceRepository = new HiddenBasePackageSourceRepositoryDecorator(
+                new PackageDatabaseSource(database)
+            );
+            sourceRepository = new EphemeralPackageSourceRepositoryDecorator(new IPackageSource[] { source }, sourceRepository);
+
+            return DoInstall(installationCandidates, database, sourceRepository);
         }
 
         static ReturnCode Uninstall(string contentPath, string[] args)

@@ -159,8 +159,15 @@ namespace MSFSModManager.Core
 
         public async Task InstallPackage(IPackageInstaller installer, IProgressMonitor? monitor = null)
         {
-            string packagePath = _packages[installer.PackageId].PackagePath;
+            string packagePath = Path.Join("Community", installer.PackageId);
             string fullPackagePath = Path.Join(_installationPath, packagePath);
+            if (!Contains(installer.PackageId))
+            {
+                Directory.CreateDirectory(fullPackagePath);
+                _packages.Add(installer.PackageId, new InstalledPackage(installer.PackageId, packagePath, null, null));
+            }
+            Debug.Assert(packagePath == _packages[installer.PackageId].PackagePath);
+
             if (File.Exists(Path.Join(fullPackagePath, PackageDirectoryLayout.ManifestFile)))
             {
                 GlobalLogger.Log(LogLevel.Info, $"Removing previous installation of {installer.PackageId}.");

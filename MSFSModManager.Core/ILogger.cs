@@ -6,6 +6,7 @@ namespace MSFSModManager.Core
 
     public enum LogLevel
     {
+        Debug,
         Info,
         Output,
         Warning,
