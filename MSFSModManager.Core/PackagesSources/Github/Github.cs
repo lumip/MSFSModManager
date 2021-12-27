@@ -13,6 +13,8 @@ using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 
 using MSFSModManager.Core.Parsing;
+using System.Net.Http.Headers;
+using System.Net.Http;
 
 namespace MSFSModManager.Core.PackageSources.Github
 {
@@ -90,24 +92,30 @@ namespace MSFSModManager.Core.PackageSources.Github
     public class GithubAPI
     {
 
-        static async Task<string> MakeRequest(string requestUrl)
+        public static ProductInfoHeaderValue GetUserAgent()
         {
-            HttpWebRequest request = WebRequest.CreateHttp(requestUrl);
-            request.UserAgent = "lumip";
-            request.Headers.Add(HttpRequestHeader.Accept, "application/vnd.github.v3+json");
-            HttpWebResponse response = (HttpWebResponse)(await request.GetResponseAsync());
-
-            StreamReader streamReader = new StreamReader(response.GetResponseStream());
-            string responseString = streamReader.ReadToEnd();
-            return responseString;
+            return new ProductInfoHeaderValue("lumip", "0.1");
         }
 
-        static public async Task<IEnumerable<string>> FetchReleaseNames(GithubRepository repository)
+        static async Task<string> MakeRequest(string requestUrl, HttpClient client)
+        {
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+            request.Headers.UserAgent.Add(GetUserAgent());
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
+            using (HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead))
+            {
+                response.EnsureSuccessStatusCode();
+                string responseString = await response.Content.ReadAsStringAsync();
+                return responseString;    
+            }
+        }
+
+        static public async Task<IEnumerable<string>> FetchReleaseNames(GithubRepository repository, HttpClient client)
         {
             List<string> tagNames = new List<string>();
 
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/releases";
-            string responseString = await MakeRequest(requestUrl);
+            string responseString = await MakeRequest(requestUrl, client);
 
             try
             {
@@ -140,12 +148,12 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        static public async Task<IEnumerable<Release>> FetchReleases(GithubRepository repository, IGithubReleaseArtifactSelector artifactSelector)
+        static public async Task<IEnumerable<Release>> FetchReleases(GithubRepository repository, IGithubReleaseArtifactSelector artifactSelector, HttpClient client)
         {
             List<Release> releases = new List<Release>();
 
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/releases";
-            string responseString = await MakeRequest(requestUrl);
+            string responseString = await MakeRequest(requestUrl, client);
 
             try
             {
@@ -222,10 +230,10 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        public static async Task<IEnumerable<Commit>> GetBranchCommits(GithubRepository repository, string branch)
+        public static async Task<IEnumerable<Commit>> GetBranchCommits(GithubRepository repository, string branch, HttpClient client)
         {
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/commits?sha={branch}";
-            string responseString = await MakeRequest(requestUrl);
+            string responseString = await MakeRequest(requestUrl, client);
 
             try
             {
@@ -237,10 +245,10 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        public static async Task<string> GetCommitShaForTag(GithubRepository repository, string tag)
+        public static async Task<string> GetCommitShaForTag(GithubRepository repository, string tag, HttpClient client)
         {
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/commits/{tag}";
-            string responseString = await MakeRequest(requestUrl);
+            string responseString = await MakeRequest(requestUrl, client);
 
             try
             {
@@ -253,10 +261,10 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        public static async Task<string> GetManifestString(GithubRepository repository, string commitSha)
+        public static async Task<string> GetManifestString(GithubRepository repository, string commitSha, HttpClient client)
         {
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/git/trees/{commitSha}?recursive=1";
-            string responseString = await MakeRequest(requestUrl);          
+            string responseString = await MakeRequest(requestUrl, client);
 
             var manifestRegex = new Regex(@"manifest.*\.json");
 
@@ -272,7 +280,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                 if (manifestFiles.Length == 0) throw new FileNotFoundException("Manifest file not found in release commit.");
 
                 string manifestUrl = manifestFiles.First();
-                responseString = await MakeRequest(manifestUrl);
+                responseString = await MakeRequest(manifestUrl, client);
 
                 JObject manifestObject = JObject.Parse(responseString);
                 string manifestRaw = Encoding.UTF8.GetString(

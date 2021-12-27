@@ -41,7 +41,7 @@ namespace MSFSModManager.Core.PackageSources.Github
         {
             if (_githubReleases == null)
             {
-                _githubReleases = (await GithubAPI.FetchReleases(_repository, _artifactSelector)).ToList();
+                _githubReleases = (await GithubAPI.FetchReleases(_repository, _artifactSelector, _client)).ToList();
             }
             return _githubReleases;
         }
@@ -132,7 +132,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                 }
             }
 
-
+            monitor?.RequestPending(PackageId);
             IEnumerable<GithubAPI.Release> releases = await FetchGithubReleases();
             foreach (GithubAPI.Release release in releases)
             {
@@ -150,10 +150,10 @@ namespace MSFSModManager.Core.PackageSources.Github
                 if (versionBounds.CheckVersion(releaseVersion))
                 {
 
-                    string commitSha = await GithubAPI.GetCommitShaForTag(_repository, release.Name);
+                    string commitSha = await GithubAPI.GetCommitShaForTag(_repository, release.Name, _client);
                     try
                     {
-                        string rawManifest = await GithubAPI.GetManifestString(_repository, commitSha);
+                        string rawManifest = await GithubAPI.GetManifestString(_repository, commitSha, _client);
                         PackageManifest manifest = PackageManifest.Parse(PackageId, rawManifest, releaseVersion);
 
                         if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)

@@ -18,6 +18,13 @@ namespace MSFSModManager.CLI
             _statusLines = statusLines;
         }
 
+        public void RequestPending(string packageId)
+        {
+            ConsoleRenderer.LineHandle line = _statusLines.GetLineHandle(packageId);
+            line.Clear();
+            line.Write($"Request pending for {packageId} ...");
+        }
+
         public void DownloadStarted(IDownloadProgressMonitor monitor)
         {
             ConsoleRenderer.LineHandle line = _statusLines.GetLineHandle(monitor.PackageId);

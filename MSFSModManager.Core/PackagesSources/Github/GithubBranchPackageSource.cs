@@ -38,7 +38,7 @@ namespace MSFSModManager.Core.PackageSources.Github
         {
             if (_branchCommits == null)
             {
-                _branchCommits = (await GithubAPI.GetBranchCommits(_repository, _branch)).ToList();
+                _branchCommits = (await GithubAPI.GetBranchCommits(_repository, _branch, _client)).ToList();
             }
             return _branchCommits;
         }
@@ -61,13 +61,14 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor = null)
         {
+            monitor?.RequestPending(PackageId);
             foreach (var commit in await FetchCommits())
             {
                 GitCommitVersionNumber version = new GitCommitVersionNumber(commit.Sha, commit.Date);
                 if (!versionBounds.CheckVersion(version))
                     continue;
 
-                string rawManifest = await GithubAPI.GetManifestString(_repository, commit.Sha);
+                string rawManifest = await GithubAPI.GetManifestString(_repository, commit.Sha, _client);
                 PackageManifest manifest;
                 try
                 {
