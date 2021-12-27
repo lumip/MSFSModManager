@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MSFSModManager.GUI.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+             x:Class="MSFSModManager.GUI.Views.LogView">         
+
+    <Design.DataContext>
+        <vm:LogViewModel />
+    </Design.DataContext>
+
+    <!--<ae:TextEditor x:Name="LogTextBox"
+                       Background="White"
+                       Foreground="Black"
+                       SyntaxHighlighting="C#"
+                       HorizontalScrollBarVisibility="Auto"
+                       VerticalScrollBarVisibility="Auto"
+                       FontWeight="Normal" 
+                       FontSize="14"
+                       WordWrap="False"
+                       Document="{Binding Document}"
+                       />-->
+    <TextBox Name="LogTextBox" IsReadOnly="True" Text="{Binding Log, Mode=OneWay}" /><!-- AcceptsReturn="True" TextWrapping="Wrap" -->
+</UserControl>

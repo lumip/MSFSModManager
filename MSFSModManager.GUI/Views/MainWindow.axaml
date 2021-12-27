@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MSFSModManager.GUI.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="using:MSFSModManager.GUI.Views"
+        x:Class="MSFSModManager.GUI.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="MSFSModManager.GUI">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="5" Margin="2">
+            <!--<StackPanel.Resources>
+                <Style>
+                    <Setter Property="Margin" Value="0,10,0,0"/>
+                </Style>
+            </StackPanel.Resources>-->
+            <TextBlock Text="Filter" VerticalAlignment="Center" />
+            <TextBox Name="FilterTextBox" Watermark="Filter" Text="{Binding FilterString}"></TextBox>
+            <TextBlock Text="Type" VerticalAlignment="Center" />
+            <ComboBox Items="{Binding PackageTypes}" SelectedIndex="{Binding TypeFilterIndex}"></ComboBox>
+            <Button Command="{Binding ClearFilters}">Clear All Filters</Button>
+            <CheckBox IsChecked="{Binding IncludeSystemPackages}">Include system packages</CheckBox>
+            <CheckBox IsChecked="{Binding OnlyWithSource}">Only with source</CheckBox>
+        </StackPanel>
+        <views:LogView Margin="5" Height="200" DockPanel.Dock="Bottom" DataContext="{Binding Log}" />
+        <!--<TextBox Margin="5" Name="LogTextBox" DockPanel.Dock="Bottom" AcceptsReturn="True" TextWrapping="Wrap" Height="200" IsReadOnly="True" Text="{Binding Log, Mode=OneWay}" />-->
+        <!--<ItemsRepeater Items="{Binding Items}">
+            <ItemsRepeater.ItemTemplate>
+
+            </ItemsRepeater.ItemTemplate>
+        </ItemsRepeater>-->
+
+        <Grid>
+            <DataGrid Name="datagrid" Items="{Binding Packages}" AutoGenerateColumns="True" />
+        </Grid>
+        
+    </DockPanel>
+
+</Window>
