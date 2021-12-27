@@ -3,52 +3,38 @@
 
 using System;
 using MSFSModManager.Core;
-using MSFSModManager.Core.PackageSources;
 
 namespace MSFSModManager.CLI
 {
-    class ConsoleProgressMonitor : IProgressMonitor
+    class ConsoleLogger : ILogger
     {
 
-        private ConsoleStatusLines _statusLines;
+        private ConsoleRenderer _renderer;
 
-        public ConsoleProgressMonitor(ConsoleStatusLines statusLines)
+        public ConsoleLogger(ConsoleRenderer renderer)
         {
-            _statusLines = statusLines;
+            _renderer = renderer;
         }
 
-        public void DownloadStarted(IDownloadProgressMonitor monitor)
+        public void Log(LogLevel level, string message)
         {
-            ConsoleRenderer.LineHandle line = _statusLines.GetLineHandle(monitor.PackageId);
-
-            ProgressBar bar = new ProgressBar($"downloading {monitor.PackageId} {monitor.Version}", $"{monitor.TotalSize / (1024*1024)} MB", line);
-            bar.Render();
-            monitor.UserData = bar;
-            monitor.DownloadProgress += OnDownloadProgress;
-        }
-
-        void OnDownloadProgress(IDownloadProgressMonitor monitor)
-        {
-            ProgressBar bar = (ProgressBar)monitor.UserData!;
-        
-            bar.Update(monitor.CurrentPercentage);
-            bar.Render();
-        }
-
-        public void ExtractionCompleted(string packageId, IVersionNumber versionNumber)
-        {
-            ConsoleRenderer.LineHandle line = _statusLines.GetLineHandle(packageId);
-            
-            line.Clear();
-            line.Write($"Extracting {packageId} {versionNumber} completed.");
-        }
-
-        public void ExtractionStarted(string packageId, IVersionNumber versionNumber)
-        {
-            ConsoleRenderer.LineHandle line = _statusLines.GetLineHandle(packageId);
-
-            line.Clear();
-            line.Write($"Extracting {packageId} {versionNumber} ...");
+            ConsoleColor color;
+            switch (level)
+            {
+                case LogLevel.Warning:
+                    color = ConsoleColor.Yellow;
+                    break;
+                case LogLevel.Error:
+                    color = ConsoleColor.DarkRed;
+                    break;
+                case LogLevel.CriticalError:
+                    color = ConsoleColor.Red;
+                    break;
+                default:
+                    color = ConsoleColor.Gray;
+                    break;                
+            }
+            _renderer.WriteLine(message, color);
         }
     }
 }
