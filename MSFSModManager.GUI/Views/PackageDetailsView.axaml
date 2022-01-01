@@ -1,0 +1,56 @@
+<!--
+    SPDX-License-Identifier: GPL-3.0-or-later
+    Copyright 2021 Lukas <lumip> Prediger
+-->
+
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MSFSModManager.GUI.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+             x:Class="MSFSModManager.GUI.Views.PackageDetailsView">         
+
+    <Design.DataContext>
+        <vm:PackageViewModel />
+    </Design.DataContext>
+
+    <StackPanel Margin="4" Spacing="10">
+        <StackPanel>
+            <TextBlock Text="Package Id" FontWeight="Bold" />
+            <TextBlock Text="{Binding Id}" />
+        </StackPanel>
+        <StackPanel>
+            <TextBlock Text="Title" FontWeight="Bold" />
+            <TextBlock Text="{Binding Title}" />
+        </StackPanel>
+        <StackPanel>
+            <TextBlock Text="Creator" FontWeight="Bold" />
+            <TextBlock Text="{Binding Creator}" />
+        </StackPanel>
+
+        <StackPanel>
+            <TextBlock Text="Installed Version" FontWeight="Bold" />
+            <TextBlock Text="{Binding Version}" />
+        </StackPanel>
+
+        <StackPanel>
+            <TextBlock Text="Package Source" FontWeight="Bold" />
+            <TextBlock Text="{Binding Source}" />
+            <StackPanel Orientation="Horizontal">
+                <Button Command="{Binding OpenAddPackageDialogCommand}">Add/Update Source</Button>
+                <Button Command="{Binding RemovePackageSourceCommand}" IsEnabled="{Binding HasSource}">Remove Source</Button>
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel>
+            <TextBlock Text="Latest Available Version" FontWeight="Bold" />
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding LatestVersionString}" />
+                <TextBlock Text=" (newer)" FontWeight="Bold" IsVisible="{Binding IsLatestVersionNewer}" />
+            </StackPanel>
+        </StackPanel>
+
+        <CheckBox IsChecked="{Binding MarkedForInstall}" IsEnabled="{Binding IsLatestVersionNewer}">Select for Update/Installation</CheckBox>
+    </StackPanel>
+</UserControl>

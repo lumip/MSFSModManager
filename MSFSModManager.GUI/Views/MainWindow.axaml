@@ -1,3 +1,8 @@
+<!--
+    SPDX-License-Identifier: GPL-3.0-or-later
+    Copyright 2021 Lukas <lumip> Prediger
+-->
+
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:MSFSModManager.GUI.ViewModels"
@@ -5,38 +10,45 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="using:MSFSModManager.GUI.Views"
         x:Class="MSFSModManager.GUI.Views.MainWindow"
+        WindowStartupLocation="CenterScreen"
         Icon="/Assets/avalonia-logo.ico"
-        Title="MSFSModManager.GUI">
+        Title="MSFS Mod Manager">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
     <DockPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="5" Margin="2">
-            <!--<StackPanel.Resources>
-                <Style>
-                    <Setter Property="Margin" Value="0,10,0,0"/>
-                </Style>
-            </StackPanel.Resources>-->
-            <TextBlock Text="Filter" VerticalAlignment="Center" />
-            <TextBox Name="FilterTextBox" Watermark="Filter" Text="{Binding FilterString}"></TextBox>
-            <TextBlock Text="Type" VerticalAlignment="Center" />
-            <ComboBox Items="{Binding PackageTypes}" SelectedIndex="{Binding TypeFilterIndex}"></ComboBox>
-            <Button Command="{Binding ClearFilters}">Clear All Filters</Button>
-            <CheckBox IsChecked="{Binding IncludeSystemPackages}">Include system packages</CheckBox>
-            <CheckBox IsChecked="{Binding OnlyWithSource}">Only with source</CheckBox>
+        <!-- Filter option panel -->
+        <DockPanel DockPanel.Dock="Top" Margin="2">
+            <TextBlock Text="Filter" VerticalAlignment="Center" DockPanel.Dock="Left" />
+            
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="5" Margin="2">
+                <TextBlock Text="Type" VerticalAlignment="Center" />
+                <ComboBox Items="{Binding PackageTypes}" SelectedIndex="{Binding TypeFilterIndex}"></ComboBox>
+                <Button Command="{Binding ClearFilters}">Clear All Filters</Button>
+                <CheckBox IsChecked="{Binding IncludeSystemPackages}">Include system packages</CheckBox>
+                <CheckBox IsChecked="{Binding OnlyWithSource}">Only with source</CheckBox>
+            </StackPanel>
+            <TextBox Name="FilterTextBox" Watermark="Filter" Text="{Binding FilterString}" />
+        </DockPanel>
+
+        <!-- Button and Log panel -->
+        <StackPanel DockPanel.Dock="Bottom" Margin="5" Spacing="5">
+            <StackPanel Orientation="Horizontal">
+                <Button Command="{Binding OpenAddPackageDialogCommand}">Add Package Source</Button>
+                <Button IsEnabled="false">Install Selected</Button> 
+            </StackPanel>
+            <views:LogView Height="200" DataContext="{Binding Log}" />
         </StackPanel>
-        <views:LogView Margin="5" Height="200" DockPanel.Dock="Bottom" DataContext="{Binding Log}" />
-        <!--<TextBox Margin="5" Name="LogTextBox" DockPanel.Dock="Bottom" AcceptsReturn="True" TextWrapping="Wrap" Height="200" IsReadOnly="True" Text="{Binding Log, Mode=OneWay}" />-->
-        <!--<ItemsRepeater Items="{Binding Items}">
-            <ItemsRepeater.ItemTemplate>
 
-            </ItemsRepeater.ItemTemplate>
-        </ItemsRepeater>-->
-
-        <Grid>
-            <DataGrid Name="datagrid" Items="{Binding Packages}" AutoGenerateColumns="True" />
+        <!-- Package List and Details -->
+        <Grid ColumnDefinitions="*,4,300">
+            <Grid Grid.Column="0">
+                <DataGrid Name="datagrid" Items="{Binding FilteredPackages}" SelectedItem="{Binding SelectedPackage}" AutoGenerateColumns="True" />
+            </Grid>
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
+            <views:PackageDetailsView Grid.Column="2" DockPanel.Dock="Right" VerticalAlignment="Stretch" DataContext="{Binding SelectedPackage}" />
         </Grid>
         
     </DockPanel>

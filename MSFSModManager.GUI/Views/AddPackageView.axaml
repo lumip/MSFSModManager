@@ -1,0 +1,30 @@
+<!--
+    SPDX-License-Identifier: GPL-3.0-or-later
+    Copyright 2021 Lukas <lumip> Prediger
+-->
+
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:MSFSModManager.GUI.ViewModels"
+        x:Class="MSFSModManager.GUI.Views.AddPackageView"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="Height"
+        Width="600"
+        Title="Add Package">
+
+    <Design.DataContext>
+        <vm:AddPackageViewModel/>
+    </Design.DataContext>
+
+    <StackPanel Orientation="Vertical" Margin="10" Spacing="4">
+        <TextBlock>Enter a package id as well as the source URL and options and click "Add"</TextBlock>
+        <TextBox Watermark="Package Id" HorizontalAlignment="Stretch" Text="{Binding PackageId}" Foreground="{Binding PackageIdTextColor}" />
+        <TextBox Watermark="Source URL" HorizontalAlignment="Stretch" Text="{Binding PackageSourceString}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="100" Command="{Binding CancelCommand}" HorizontalContentAlignment="Center">Cancel</Button>
+            <Button Width="100" Command="{Binding AddPackageCommand}" IsEnabled="{Binding IsValidSource}" HorizontalContentAlignment="Center">Add</Button>
+        </StackPanel>
+    </StackPanel>
+</Window>

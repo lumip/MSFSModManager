@@ -2,13 +2,19 @@
 // Copyright 2021 Lukas <lumip> Prediger
 
 using System;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using ReactiveUI;
+
+using MSFSModManager.GUI.ViewModels;
+using MSFSModManager.Core.PackageSources;
+using Avalonia.ReactiveUI;
 
 namespace MSFSModManager.GUI.Views
 {
-    public partial class MainWindow : Window
+    partial class MainWindow : ReactiveWindow<MainWindowViewModel>
     {
 
         public MainWindow()
@@ -17,11 +23,22 @@ namespace MSFSModManager.GUI.Views
 #if DEBUG
             this.AttachDevTools();
 #endif
+
+            this.WhenActivated(d => d(ViewModel!.ShowAddPackageDialog.RegisterHandler(ShowAddPackageDialogAsync)));
         }
 
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
+        }
+
+        private async Task ShowAddPackageDialogAsync(InteractionContext<AddPackageViewModel, IPackageSource?> interaction)
+        {
+            var dialog = new AddPackageView();
+            dialog.DataContext = interaction.Input;
+
+            var result = await dialog.ShowDialog<IPackageSource?>(this);
+            interaction.SetOutput(result);
         }
     }
 }

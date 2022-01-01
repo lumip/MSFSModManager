@@ -1,8 +1,7 @@
-﻿
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright 2021 Lukas <lumip> Prediger
 
-Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MSFSModManager.Core", "MSFSModManager.Core\MSFSModManager.Core.csproj", "{03C4630B-1678-4021-8181-1CFC7B918DB5}"

@@ -54,64 +54,12 @@ namespace MSFSModManager.GUI
             {
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel(database, logger),
+                    DataContext = new MainWindowViewModel(database, sourceRegistry, logger),
                 };
             }
 
             base.OnFrameworkInitializationCompleted();
-
-            // Task.Run(() => CheckForUpdates(database, VersionNumber.Infinite));
         }
 
-        // private void CheckForUpdates(IPackageDatabase database, IVersionNumber gameVersion)
-        // {
-            
-
-        //     database = new HiddenBasePackagesDatabase(database);
-
-        //     GlobalLogger.Log(LogLevel.Info, "Resolving package dependencies:");
-
-        //     IEnumerable<PackageDependency> installationCandidates = database.CommunityPackages
-        //         .Where(p => p.PackageSource != null)
-        //         .Select(p => new PackageDependency(
-        //                             p.Id,
-        //                             new VersionBounds(
-        //                                     (p.Manifest == null) ? VersionNumber.Zero : p.Manifest.Version,
-        //                                     VersionNumber.Infinite
-        //                             )
-        //                     )
-        //         );
-
-                
-        //     IPackageSourceRepository source = new HiddenBasePackageSourceRepositoryDecorator(new PackageDatabaseSource(database));
-
-
-        //     IEnumerable<PackageManifest> toInstall;
-        //     try
-        //     {
-        //         toInstall = DependencyResolver.ResolveDependencies(installationCandidates, source, gameVersion).Result
-        //             .Where(m => !database.Contains(m.Id, new VersionBounds(m.SourceVersion)));
-        //     }
-        //     catch (AggregateException e)
-        //     {
-        //         Exception innerException = e.InnerException!;
-        //         if (innerException is PackageNotAvailableException)
-        //         {
-        //             GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: A source of a required package could not be found.");
-        //         }
-        //         else if (innerException is VersionNotAvailableException)
-        //         {
-        //             GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: A suitable package version for a required package could not be found.");
-        //         }
-        //         else
-        //         {
-        //             GlobalLogger.Log(LogLevel.CriticalError, $"Could not complete installation: Unknown error.");
-        //         }
-        //         GlobalLogger.Log(LogLevel.CriticalError, $"{innerException}");
-        //     }
-
-            
-
-        // }
     }
 }
