@@ -54,6 +54,7 @@ namespace MSFSModManager.Core.PackageSources
 
         public IPackageSource ParseSourceStrings(string packageId, string[] sourceString)
         {
+            if (sourceString.Length == 0) throw new ArgumentException();
             string uri = sourceString[0];
             if (uri.Contains("github.com"))
             {
@@ -74,12 +75,24 @@ namespace MSFSModManager.Core.PackageSources
                     return new GithubReleasePackageSource(packageId, GithubRepository.FromUrl(uri), _cache, _client, artifactSelector);
                 }
             }
-            else if (new Uri(uri).IsFile)
+
+            try
             {
-                if (uri.EndsWith(".zip"))
+                if (new Uri(uri).IsFile)
                 {
-                    return new ZipFilePackageSource(packageId, uri);
+                    if (uri.EndsWith(".zip"))
+                    {
+                        return new ZipFilePackageSource(packageId, uri);
+                    }
                 }
+            }
+            catch (UriFormatException)
+            {
+                throw new ArgumentException();
+            }
+            catch (FileNotFoundException)
+            {
+                throw new ArgumentException();
             }
             throw new ArgumentException();
         }

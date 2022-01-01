@@ -19,22 +19,39 @@ using System.Net.Http;
 namespace MSFSModManager.Core.PackageSources.Github
 {
 
-    public class GithubRepositoryFormatException : Exception
+    public class GithubAPIException : Exception
+    {
+        public GithubAPIException(string message, Exception baseException)
+            : base(message, baseException) { }
+
+        public GithubAPIException(string message)
+            : base(message) { }
+    }
+
+    public class GithubAPIParsingException : GithubAPIException
+    {
+        public GithubAPIParsingException(string message, Exception baseException)
+            : base($"Could not parse github response: {message}", baseException) { }
+
+        public GithubAPIParsingException(string message)
+            : base($"Could not parse github response: {message}") { }
+
+        public GithubAPIParsingException(Exception baseException)
+            : base("Could not parse github response.", baseException) { }
+
+    }
+
+    public class GithubRepositoryFormatException : GithubAPIException
     {
         public GithubRepositoryFormatException(string message)
             : base(message) { }
     }
 
-    public class GithubAPIException : Exception
+
+    public class GithubRepositoryNotFoundException : GithubAPIException
     {
-        public GithubAPIException(string message, Exception baseException)
-            : base($"Could not parse github response: {message}", baseException) { }
-
-        public GithubAPIException(string message)
-            : base($"Could not parse github response: {message}") { }
-
-        public GithubAPIException(Exception baseException)
-            : base("Could not parse github response.", baseException) { }
+        public GithubRepositoryNotFoundException(string message)
+        : base(message) { }
     }
     
     public class GithubRepository : IJsonSerializable
@@ -42,21 +59,15 @@ namespace MSFSModManager.Core.PackageSources.Github
         public string Organisation { get; }
         public string Name { get; }
 
-        public IEnumerable<string> WatchedBranches => _watchedBranches;
-
-        private List<string> _watchedBranches;
-
         public GithubRepository(string repositoryOrganisation, string repositoryName)
         {
             Organisation = repositoryOrganisation;
             Name = repositoryName;
-            _watchedBranches = new List<string>();
-            _watchedBranches.Add("master");
         }
 
         public static GithubRepository FromUrl(string repositoryUrl)
         {
-            Regex re = new Regex("https://github.com/(?<Organisation>.*)/(?<Name>[A-z0-9]*)");
+            Regex re = new Regex("https://github.com/(?<Organisation>.+)/(?<Name>[A-z0-9]+)");
             var match = re.Match(repositoryUrl);
             if (match.Success)
             {
@@ -64,7 +75,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                 string name = match.Groups["Name"].Value;
                 return new GithubRepository(organisation, name);
             }
-            throw new Exception("could not parse given url");
+            throw new ArgumentException("could not parse given url", nameof(repositoryUrl));
         }
 
         public JToken Serialize()
