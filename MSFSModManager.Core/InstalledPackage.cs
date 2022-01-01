@@ -12,7 +12,7 @@ namespace MSFSModManager.Core
 
         public string PackagePath { get; }
         public IPackageSource? PackageSource { get; set; }
-        public PackageManifest? Manifest { get; }
+        public PackageManifest? Manifest { get; set; }
 
         public VersionNumber? Version => (Manifest == null) ? null : Manifest.Version;
 
@@ -25,6 +25,9 @@ namespace MSFSModManager.Core
         }
 
         public string Type => (Manifest == null) ? "UNKNOWN" : Manifest.Type;
+
+        public bool IsCommunityPackage => PackagePath.StartsWith(PackageDatabase.COMMUNITY_PACKAGE_PATH);
+        public bool IsSystemPackage => PackagePath.StartsWith(PackageDatabase.SYSTEM_PACKAGE_PATH);
     }
 
 }

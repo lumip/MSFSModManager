@@ -19,6 +19,9 @@ namespace MSFSModManager.Core
     public class PackageDatabase : IPackageDatabase
     {
 
+        public static readonly string COMMUNITY_PACKAGE_PATH = "Community";
+        public static readonly string SYSTEM_PACKAGE_PATH = "Official";
+
         private Dictionary<string, InstalledPackage> _packages;
         private List<string> _erroredManifests;
 
@@ -84,10 +87,10 @@ namespace MSFSModManager.Core
         public IEnumerable<InstalledPackage> Packages => _packages.Values;
 
         public IEnumerable<InstalledPackage> CommunityPackages =>
-            _packages.Values.Where(installedPackage => installedPackage.PackagePath.StartsWith("Community"));
+            _packages.Values.Where(installedPackage => installedPackage.IsCommunityPackage);
 
         public IEnumerable<InstalledPackage> OfficialPackages =>
-            _packages.Values.Where(installedPackage => installedPackage.PackagePath.StartsWith("Official"));
+            _packages.Values.Where(installedPackage => installedPackage.IsSystemPackage);
 
         public bool Contains(string packageId)
         {
@@ -107,13 +110,15 @@ namespace MSFSModManager.Core
 
         public InstalledPackage GetInstalledPackage(string packageId)
         {
-            InstalledPackage package = _packages[packageId];
-            return new InstalledPackage(
-                package.Id,
-                Path.Join(_installationPath, package.PackagePath),
-                package.Manifest,
-                package.PackageSource
-            );
+            try
+            {
+                InstalledPackage package = _packages[packageId];
+                return package;
+            }
+            catch (KeyNotFoundException e)
+            {
+                throw new PackageNotInstalledException(packageId, e);
+            }
         }
 
         public void AddPackageSource(string packageId, IPackageSource packageSource)
@@ -121,7 +126,7 @@ namespace MSFSModManager.Core
             string fullPackagePath;
             if (!Contains(packageId))
             {
-                string packagePath = Path.Join("Community", packageId);
+                string packagePath = Path.Join(COMMUNITY_PACKAGE_PATH, packageId);
                 fullPackagePath = Path.Join(_installationPath, packagePath);
                 Directory.CreateDirectory(fullPackagePath);
                 _packages.Add(packageId, new InstalledPackage(packageId, packagePath, null, packageSource));
@@ -138,7 +143,7 @@ namespace MSFSModManager.Core
 
         public async Task InstallPackage(IPackageInstaller installer, IProgressMonitor? monitor = null)
         {
-            string packagePath = Path.Join("Community", installer.PackageId);
+            string packagePath = Path.Join(COMMUNITY_PACKAGE_PATH, installer.PackageId);
             string fullPackagePath = Path.Join(_installationPath, packagePath);
             if (!Contains(installer.PackageId))
             {
@@ -168,14 +173,16 @@ namespace MSFSModManager.Core
         {
             if (!Contains(packageId)) return;
 
-            string packagePath = _packages[packageId].PackagePath;
+            InstalledPackage package = _packages[packageId];
+            package.Manifest = null;
 
-            if (packagePath.StartsWith("Official"))
+            if (package.PackagePath.StartsWith(SYSTEM_PACKAGE_PATH))
             {
-                throw new NotSupportedException("Cannot uninstall official packages.");
+                throw new NotSupportedException("Cannot uninstall system packages.");
             }
 
-            string fullPackagePath = Path.Join(_installationPath, packagePath);
+            string fullPackagePath = Path.Join(_installationPath, package.PackagePath);
+
             DirectoryInfo packageDirectory = new DirectoryInfo(fullPackagePath);
             foreach (var file in packageDirectory.EnumerateFiles())
             {
@@ -190,6 +197,10 @@ namespace MSFSModManager.Core
                 dir.Delete(recursive: true);
             }
 
+            // remove the entry from database, if it is neither installed nor a source is known
+            if (package.PackageSource == null) _packages.Remove(packageId);
+
+            // remove the directory, if it is now empty
             try
             {
                 packageDirectory.Delete();
@@ -204,10 +215,26 @@ namespace MSFSModManager.Core
         {
             if (!Contains(packageId)) return;
 
-            _packages[packageId].PackageSource = null;
+            InstalledPackage package = _packages[packageId];
+            package.PackageSource = null;
 
-            string fullPackagePath = Path.Join(_installationPath, _packages[packageId].PackagePath, PackageDirectoryLayout.PackageSourceFile);
-            File.Delete(fullPackagePath);
+            string fullPackagePath = Path.Join(_installationPath, _packages[packageId].PackagePath);
+            string fullFilePath = Path.Join(fullPackagePath, PackageDirectoryLayout.PackageSourceFile);
+            File.Delete(fullFilePath);
+
+            // remove the entry from database, if it is neither installed nor a source is known
+            if (package.Manifest == null) _packages.Remove(packageId);
+
+            // remove the directory, if it is now empty
+            try
+            {
+                Directory.Delete(fullPackagePath);
+            }
+            catch (IOException)
+            {
+                // ignore: directory was not empty, which can happen if we only removed the package source file
+                // without uninstalling the package
+            }
         }
     }
 }
