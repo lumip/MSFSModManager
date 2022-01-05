@@ -43,9 +43,6 @@ namespace MSFSModManager.GUI.ViewModels
         private readonly ObservableAsPropertyHelper<IPackageSource?> _packageSource;
         public IPackageSource? PackageSource => _packageSource.Value;
 
-        private readonly ObservableAsPropertyHelper<bool> _isValidSource;
-        public bool IsValidSource => _isValidSource.Value;
-
         private readonly ObservableAsPropertyHelper<IBrush> _packageIdTextColor;
         public IBrush PackageIdTextColor => _packageIdTextColor.Value;
 #endregion
@@ -68,39 +65,31 @@ namespace MSFSModManager.GUI.ViewModels
                                     .ToProperty(this, x => x.PackageIdTextColor, out _packageIdTextColor);
             _packageSource = this.WhenAnyValue(x => x.PackageId, x => x.PackageSourceString, ParsePackageSourceString)
                                  .ToProperty(this, x => x.PackageSource, out _packageSource);
-            _isValidSource = this.WhenAnyValue(x => x.PackageSource).Select(source => source != null)
-                                 .ToProperty(this, x => x.IsValidSource, out _isValidSource);
 
-            AddPackageCommand = ReactiveCommand.Create(() => PackageSource);
+            var isValidSource = this.WhenAnyValue(x => x.PackageSource).Select(source => source != null);
+
+            AddPackageCommand = ReactiveCommand.Create(() => PackageSource, isValidSource);
             CancelCommand = ReactiveCommand.Create(() => (IPackageSource?)null);
         }
 
         private IPackageSource? ParsePackageSourceString(string packageId, string combinedPackageSourceString)
         {
-            // this.RaisePropertyChanging(nameof(IsValidSource));
-            // try
-            // {
-                if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(combinedPackageSourceString)) return null;
-                string[] packageSourceStrings = combinedPackageSourceString.Trim().Split(' ');
-                try
-                {
-                    var res =  _packageSourceRegistry.ParseSourceStrings(packageId, packageSourceStrings);
-                    return res;
-                }
-                catch (ArgumentException)
-                {
-                    return null;
-                }
-                catch (Exception e)
-                {
-                    GlobalLogger.Log(LogLevel.Error, $"Unexpected error while parsing package source:\n{e.Message}");
-                    return null;
-                }
-            // }
-            // finally
-            // {
-            //     this.RaisePropertyChanged(nameof(IsValidSource));
-            // }
+            if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(combinedPackageSourceString)) return null;
+            string[] packageSourceStrings = combinedPackageSourceString.Trim().Split(' ');
+            try
+            {
+                var res =  _packageSourceRegistry.ParseSourceStrings(packageId, packageSourceStrings);
+                return res;
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+            catch (Exception e)
+            {
+                GlobalLogger.Log(LogLevel.Error, $"Unexpected error while parsing package source:\n{e.Message}");
+                return null;
+            }
         }
     }
 }

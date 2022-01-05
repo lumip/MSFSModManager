@@ -24,50 +24,14 @@ namespace MSFSModManager.GUI.ViewModels
 
         private PackageDatabase _database;
         private ObservableDatabase _observableDatabase;
-        private ObservableDatabase ObservableDatabase => _observableDatabase;
+        
+        private IPackageSourceRegistry _packageSourceRegistry;
 
-        // private ObservableCollection<InstalledPackage> _packages;
-        // private ObservableCollection<InstalledPackage> Packages
-        // {
-        //     get => _packages;
-        //     set => this.RaiseAndSetIfChanged(ref _packages, value);
-        // }
+        private PackageVersionCache _latestVersionCache;
 
-        // private readonly ObservableAsPropertyHelper<IEnumerable<PackageViewModel>> _filteredPackages;
-        // public IEnumerable<PackageViewModel> FilteredPackages => _filteredPackages.Value;
 
-        private PackageViewModel? _selectedPackage;
-        public PackageViewModel? SelectedPackage
-        {
-            get => _selectedPackage;
-            set => this.RaiseAndSetIfChanged(ref _selectedPackage, value);
-        }
-
+#region Direct UI properties
         public LogViewModel Log { get; }
-
-        public Interaction<AddPackageViewModel, IPackageSource?> ShowAddPackageDialog { get; }
-        
-        public ReactiveCommand<Unit, Unit> OpenAddPackageDialogCommand { get; }
-        public ReactiveCommand<InstalledPackage, Unit> RemovePackageSourceCommand { get; }
-
-        private string _filterString;
-        public string FilterString
-        {
-            get => _filterString;
-            set => this.RaiseAndSetIfChanged(ref _filterString, value);
-        }
-
-        public List<string> PackageTypes { get; }
-        
-        private int _typeFilterIndex;
-        public int TypeFilterIndex
-        {
-            get => _typeFilterIndex;
-            set => this.RaiseAndSetIfChanged(ref _typeFilterIndex, value);
-        }
-
-        public const string TYPE_FILTER_ALL_STRING = "ALL";
-        public const int TYPE_FILTER_ALL_INDEX = 0;
 
         private bool _includeSystemPackages;
         public bool IncludeSystemPackages
@@ -83,19 +47,50 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _onlyWithSource, value);
         }
 
-        private IPackageSourceRegistry _packageSourceRegistry;
+        private string _filterString;
+        public string FilterString
+        {
+            get => _filterString;
+            set => this.RaiseAndSetIfChanged(ref _filterString, value);
+        }
 
-        private PackageVersionCache _latestVersionCache;
+        public List<string> PackageTypes { get; }
+        private int _typeFilterIndex;
+        public int TypeFilterIndex
+        {
+            get => _typeFilterIndex;
+            set => this.RaiseAndSetIfChanged(ref _typeFilterIndex, value);
+        }
+        
+        public const string TYPE_FILTER_ALL_STRING = "ALL";
+        public const int TYPE_FILTER_ALL_INDEX = 0;
+        
+        private PackageViewModel? _selectedPackage;
+        public PackageViewModel? SelectedPackage
+        {
+            get => _selectedPackage;
+            set => this.RaiseAndSetIfChanged(ref _selectedPackage, value);
+        }
+        
+#endregion
 
-        private SourceCache<InstalledPackage, string> _packagesCache;
+#region Derived UI Properties
+        private IDisposable _dynamicDataPackages;
         private ReadOnlyObservableCollection<PackageViewModel> _filteredPackages;
         public ReadOnlyObservableCollection<PackageViewModel> FilteredPackages => _filteredPackages;
-        private IDisposable _dynamicDataPackages;
+
+#endregion
+        
+#region UI Commands
+        public Interaction<AddPackageViewModel, IPackageSource?> AddPackageDialogInteraction { get; }
+        public ReactiveCommand<Unit, Unit> OpenAddPackageDialogCommand { get; }
+        public ReactiveCommand<InstalledPackage, Unit> RemovePackageSourceCommand { get; }
+#endregion
+
 
         public MainWindowViewModel(PackageDatabase database, PackageSourceRegistry packageSourceRegistry, LogViewModel log)
         {
 
-            // _packages = new ObservableCollection<InstalledPackage>(database.Packages);
             _observableDatabase = new ObservableDatabase(database);
             _packageSourceRegistry = packageSourceRegistry;
             _latestVersionCache = new PackageVersionCache();
@@ -112,35 +107,16 @@ namespace MSFSModManager.GUI.ViewModels
             PackageTypes = types;
 
 
-            ShowAddPackageDialog = new Interaction<AddPackageViewModel, IPackageSource?>();
-            // OpenAddPackageDialogCommand = ReactiveCommand.CreateFromTask(async (args) => {
-            //     var dialog = new AddPackageViewModel(_database, packageSourceRegistry, "");
-            //     var packageSource = await ShowAddPackageDialog.Handle(dialog);
-            //     if (packageSource != null)
-            //     {
-            //         this.RaisePropertyChanging(nameof(ObservableDatabase));
-            //         _observableDatabase.AddPackageSource(packageSource);
-            //         // _database.AddPackageSource(packageSource.PackageId, packageSource);
-            //         // Packages = new ObservableCollection<InstalledPackage>(database.Packages);
-            //         this.RaisePropertyChanged(nameof(ObservableDatabase));
-            //     }
-            // });
+            AddPackageDialogInteraction = new Interaction<AddPackageViewModel, IPackageSource?>();
 
             OpenAddPackageDialogCommand = ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog());
             RemovePackageSourceCommand = ReactiveCommand.Create<InstalledPackage, Unit>(p => {
-                // this.RaisePropertyChanging(nameof(ObservableDatabase));
-                // _database.RemovePackageSource(p.Id);
-                // this.RaisePropertyChanged(nameof(ObservableDatabase));
                 _observableDatabase.RemoveSource(p);
                 return Unit.Default;
             });
 
             IncludeSystemPackages = false;
             OnlyWithSource = false;
-
-            // _packagesCache = new SourceCache<InstalledPackage, string>(p => p.Id);
-            // _packagesCache.AddOrUpdate(_database.Packages);
-            // _filteredPackages = _packagesCache.Connect().ToProperty(this, x => x.FilteredPackages, out _filteredPackages);
 
             var packageFilterFunction = this
                 .WhenAnyValue(x => x.FilterString, x => x.TypeFilterIndex, x => x.OnlyWithSource, x => x.IncludeSystemPackages, MakeFilter);
@@ -156,66 +132,16 @@ namespace MSFSModManager.GUI.ViewModels
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Bind(out _filteredPackages)
                 .Subscribe();
-
-            // return databasePackages.Where(p => (includeSystemPackages || p.IsCommunityPackage) &&
-            //                                    (string.IsNullOrWhiteSpace(filterString) || 
-            //                                     p.Id.Contains(filterString)) &&
-            //                                    (filterTypeIndex == TYPE_FILTER_ALL_INDEX ||
-            //                                     p.Type.ToLowerInvariant().Equals(PackageTypes[filterTypeIndex].ToLowerInvariant())) &&
-            //                                    (!onlyWithSource || p.PackageSource != null)
-            //                         )
-            //                         .Select(p => new PackageViewModel(
-            //                             p,
-            //                             ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog(p.Id, p.PackageSource?.ToString() ?? "")),
-            //                             RemovePackageSourceCommand,
-            //                             _latestVersionCache
-            //                         ));
-
-            // _filteredPackages = this.WhenAnyValue(x => x._observableDatabase.Packages, x => x.FilterString, x => x.TypeFilterIndex, x => x.OnlyWithSource, x => x.IncludeSystemPackages, 
-            //                        FilterPackages
-            //                     )
-            //                     .ToProperty(this, x => x.FilteredPackages, out _filteredPackages);
-
-            // this.WhenAnyValue(x => x.ObservableDatabase).Subscribe(p => Console.WriteLine("database changed!"));
-            // this.WhenAnyValue(x => x.ObservableDatabase.Packages).Subscribe(p => Console.WriteLine("packages changed!"));
-            // this.WhenAnyValue(x => x.FilteredPackages).Subscribe(p => Console.WriteLine("filtered packages changed!"));
-            // this.PropertyChanged += (s, e) => Console.WriteLine($"--- property changed {e.PropertyName}");
-            // _observableDatabase.PropertyChanged += (s, e) => Console.WriteLine($"This stupid property was changed: {e} ({s})!");
-            // _observableDatabase.Packages.CollectionChanged += (s, e) => Console.WriteLine($"The colleciton was changed also {e} ({s})!");
-
-            // _observableDatabase.AddPackageSource(new DummyPackageSource());
         }
 
         private async Task DoOpenAddPackageDialog(string packageId = "", string packageSourceString = "")
         {
             var dialog = new AddPackageViewModel(_database, _packageSourceRegistry, packageId, packageSourceString);
-            var packageSource = await ShowAddPackageDialog.Handle(dialog);
+            var packageSource = await AddPackageDialogInteraction.Handle(dialog);
             if (packageSource != null)
             {
-                this.RaisePropertyChanging(nameof(ObservableDatabase));
                 _observableDatabase.AddPackageSource(packageSource);
-                // _database.AddPackageSource(packageSource.PackageId, packageSource);
-                // Packages = new ObservableCollection<InstalledPackage>(database.Packages);
-                this.RaisePropertyChanged(nameof(ObservableDatabase));
             }
-        }
-
-        private IEnumerable<PackageViewModel> FilterPackages(
-            IEnumerable<InstalledPackage> databasePackages, string filterString, int filterTypeIndex, bool onlyWithSource, bool includeSystemPackages)
-        {
-            return databasePackages.Where(p => (includeSystemPackages || p.IsCommunityPackage) &&
-                                               (string.IsNullOrWhiteSpace(filterString) || 
-                                                p.Id.Contains(filterString)) &&
-                                               (filterTypeIndex == TYPE_FILTER_ALL_INDEX ||
-                                                p.Type.ToLowerInvariant().Equals(PackageTypes[filterTypeIndex].ToLowerInvariant())) &&
-                                               (!onlyWithSource || p.PackageSource != null)
-                                    )
-                                    .Select(p => new PackageViewModel(
-                                        p,
-                                        ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog(p.Id, p.PackageSource?.ToString() ?? "")),
-                                        RemovePackageSourceCommand,
-                                        _latestVersionCache
-                                    ));
         }
 
         private Func<InstalledPackage, bool> MakeFilter(string filterString, int filterTypeIndex, bool onlyWithSource, bool includeSystemPackages)

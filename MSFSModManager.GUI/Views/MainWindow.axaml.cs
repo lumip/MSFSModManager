@@ -24,7 +24,7 @@ namespace MSFSModManager.GUI.Views
             this.AttachDevTools();
 #endif
 
-            this.WhenActivated(d => d(ViewModel!.ShowAddPackageDialog.RegisterHandler(ShowAddPackageDialogAsync)));
+            this.WhenActivated(d => d(ViewModel!.AddPackageDialogInteraction.RegisterHandler(ShowAddPackageDialogAsync)));
         }
 
         private void InitializeComponent()

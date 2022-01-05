@@ -24,7 +24,7 @@
         <TextBox Watermark="Source URL" HorizontalAlignment="Stretch" Text="{Binding PackageSourceString}" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Width="100" Command="{Binding CancelCommand}" HorizontalContentAlignment="Center">Cancel</Button>
-            <Button Width="100" Command="{Binding AddPackageCommand}" IsEnabled="{Binding IsValidSource}" HorizontalContentAlignment="Center">Add</Button>
+            <Button Width="100" Command="{Binding AddPackageCommand}" HorizontalContentAlignment="Center">Add</Button>
         </StackPanel>
     </StackPanel>
 </Window>
