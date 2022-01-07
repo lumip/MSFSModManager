@@ -53,6 +53,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, _url);
                 request.Headers.UserAgent.Add(GithubAPI.GetUserAgent());
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
                 using (HttpResponseMessage response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                 {
                     response.EnsureSuccessStatusCode();
