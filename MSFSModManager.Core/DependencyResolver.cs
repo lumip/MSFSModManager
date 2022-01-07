@@ -105,18 +105,18 @@ namespace MSFSModManager.Core
                                 dependencyGraph.AddChild(parent, versionBounds);
                                 resolverQueue.Enqueue(parent);
                             }
-                            catch (UnsatisfiableBoundsException ue)
+                            catch (UnsatisfiableBoundsException)
                             {
                                 // irrecoverable
-                                throw ue;
+                                throw;
                             }
                         }
                     }
                 }
-                catch (PackageNotAvailableException e)
+                catch (PackageNotAvailableException)
                 {
                     // no source is known from which the package could be installed, irrecoverable
-                    throw e;
+                    throw;
                 }
 
             }
