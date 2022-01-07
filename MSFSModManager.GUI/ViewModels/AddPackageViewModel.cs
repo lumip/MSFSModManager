@@ -15,6 +15,21 @@ using Avalonia.Media;
 
 namespace MSFSModManager.GUI.ViewModels
 {
+
+    public class AddPackageDialogReturnValues
+    {
+        public IPackageSource? PackageSource;
+        public bool MarkForInstallation;
+        public bool InstallAfterAdding;
+
+        public AddPackageDialogReturnValues(IPackageSource? packageSource, bool markForInstallation, bool installAfterAdding)
+        {
+            PackageSource = packageSource;
+            MarkForInstallation = markForInstallation;
+            InstallAfterAdding = installAfterAdding;
+        }
+    }
+
     public class AddPackageViewModel : ViewModelBase
     {
 
@@ -37,6 +52,20 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _packageId, value);
         }
 
+        private bool _markForInstallation;
+        public bool MarkForInstallation
+        {
+            get => _markForInstallation;
+            set => this.RaiseAndSetIfChanged(ref _markForInstallation, value);
+        }
+
+        private bool _installAfterAdding;
+        public bool InstallAfterAdding
+        {
+            get => _installAfterAdding;
+            set => this.RaiseAndSetIfChanged(ref _installAfterAdding, value);
+        }
+
 #endregion
 
 #region Derived UI Properties
@@ -45,13 +74,16 @@ namespace MSFSModManager.GUI.ViewModels
 
         private readonly ObservableAsPropertyHelper<IBrush> _packageIdTextColor;
         public IBrush PackageIdTextColor => _packageIdTextColor.Value;
+
+        private readonly ObservableAsPropertyHelper<string> _addButtonLabel;
+        public string AddButtonLabel => _addButtonLabel.Value;
 #endregion
 
 
 #region UI Commands
 
-        public ReactiveCommand<Unit, IPackageSource?> AddPackageCommand { get; }
-        public ReactiveCommand<Unit, IPackageSource?> CancelCommand { get; }
+        public ReactiveCommand<Unit, AddPackageDialogReturnValues> AddPackageCommand { get; }
+        public ReactiveCommand<Unit, AddPackageDialogReturnValues> CancelCommand { get; }
 
 #endregion
 
@@ -63,13 +95,20 @@ namespace MSFSModManager.GUI.ViewModels
 
             _packageIdTextColor = this.WhenAnyValue(x => x.PackageId, id => database.Contains(id) ? Brushes.Orange : Brushes.Black)
                                     .ToProperty(this, x => x.PackageIdTextColor, out _packageIdTextColor);
+            _addButtonLabel = this.WhenAnyValue(x => x.PackageId, id => database.Contains(id) ? "Update" : "Add")
+                                    .ToProperty(this, x => x.AddButtonLabel, out _addButtonLabel);
             _packageSource = this.WhenAnyValue(x => x.PackageId, x => x.PackageSourceString, ParsePackageSourceString)
                                  .ToProperty(this, x => x.PackageSource, out _packageSource);
 
             var isValidSource = this.WhenAnyValue(x => x.PackageSource).Select(source => source != null);
 
-            AddPackageCommand = ReactiveCommand.Create(() => PackageSource, isValidSource);
-            CancelCommand = ReactiveCommand.Create(() => (IPackageSource?)null);
+            AddPackageCommand = ReactiveCommand.Create(
+                () => new AddPackageDialogReturnValues(PackageSource, MarkForInstallation, InstallAfterAdding),
+                isValidSource
+            );
+            CancelCommand = ReactiveCommand.Create(
+                () => new AddPackageDialogReturnValues(null, MarkForInstallation, InstallAfterAdding)
+            );
         }
 
         private IPackageSource? ParsePackageSourceString(string packageId, string combinedPackageSourceString)

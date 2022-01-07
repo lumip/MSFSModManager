@@ -11,6 +11,7 @@ using ReactiveUI;
 using MSFSModManager.GUI.ViewModels;
 using MSFSModManager.Core.PackageSources;
 using Avalonia.ReactiveUI;
+using System.Reactive;
 
 namespace MSFSModManager.GUI.Views
 {
@@ -25,6 +26,7 @@ namespace MSFSModManager.GUI.Views
 #endif
 
             this.WhenActivated(d => d(ViewModel!.AddPackageDialogInteraction.RegisterHandler(ShowAddPackageDialogAsync)));
+            this.WhenActivated(d => d(ViewModel!.InstallPackagesDialogInteraction.RegisterHandler(ShowInstallDialogAsync)));
         }
 
         private void InitializeComponent()
@@ -32,12 +34,21 @@ namespace MSFSModManager.GUI.Views
             AvaloniaXamlLoader.Load(this);
         }
 
-        private async Task ShowAddPackageDialogAsync(InteractionContext<AddPackageViewModel, IPackageSource?> interaction)
+        private async Task ShowAddPackageDialogAsync(InteractionContext<AddPackageViewModel, AddPackageDialogReturnValues> interaction)
         {
             var dialog = new AddPackageView();
             dialog.DataContext = interaction.Input;
 
-            var result = await dialog.ShowDialog<IPackageSource?>(this);
+            var result = await dialog.ShowDialog<AddPackageDialogReturnValues>(this);
+            interaction.SetOutput(result);
+        }
+
+        private async Task ShowInstallDialogAsync(InteractionContext<InstallDialogViewModel, Unit> interaction)
+        {
+            var dialog = new InstallDialogView();
+            dialog.DataContext = interaction.Input;
+
+            var result = await dialog.ShowDialog<Unit>(this);
             interaction.SetOutput(result);
         }
     }

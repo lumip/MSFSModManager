@@ -7,6 +7,7 @@ using System.Text;
 using System.Linq;
 using ReactiveUI;
 using System.Reactive.Linq;
+using System.Threading.Tasks;
 
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;
@@ -19,6 +20,7 @@ namespace MSFSModManager.GUI.ViewModels
     {
 
         private IPackageDatabase _database;
+        public IPackageDatabase Database => _database;
 
         public SourceCache<InstalledPackage, string> Packages { get; }
         public IObservable<IChangeSet<InstalledPackage, string>> Connect() => Packages.Connect();
@@ -43,7 +45,37 @@ namespace MSFSModManager.GUI.ViewModels
             _database.RemovePackageSource(p.Id);
 
             if (!_database.Contains(p.Id))
+            {
                 Packages.RemoveKey(p.Id);
+            }
+            else
+            {
+                Packages.AddOrUpdate(p);
+            }
+        }
+
+        public async Task InstallPackage(IPackageInstaller installer, IProgressMonitor? monitor = null)
+        {
+            await _database.InstallPackage(installer, monitor);
+            if (!_database.Contains(installer.PackageId))
+            {
+                Packages.AddOrUpdate(_database.GetInstalledPackage(installer.PackageId));
+            }
+        }
+
+        public void Uninstall(InstalledPackage p)
+        {
+            _database.Uninstall(p.Id);
+
+            if (!_database.Contains(p.Id))
+            {
+                Packages.RemoveKey(p.Id);
+            }
+            else
+            {
+                Packages.AddOrUpdate(p);
+            }
+
         }
     }
 }

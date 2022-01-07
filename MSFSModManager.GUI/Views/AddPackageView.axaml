@@ -19,12 +19,20 @@
     </Design.DataContext>
 
     <StackPanel Orientation="Vertical" Margin="10" Spacing="4">
-        <TextBlock>Enter a package id as well as the source URL and options and click "Add"</TextBlock>
+        <TextBlock FontWeight="Bold">Enter a package id as well as the source URL and options and click "Add".</TextBlock>
+        <TextBlock TextWrapping="Wrap">
+A source URL gives the location from which the package can be obtained.
+For example, it may be the URL/link to a Github repository, such as https://github.com/lumip/MSFSModManager, in which case the software looks for releases on the Github repository page. If you want to use the latest development version, you can append the @ symbol followed by the branch name, e.g, '@master'.
+        </TextBlock>
         <TextBox Watermark="Package Id" HorizontalAlignment="Stretch" Text="{Binding PackageId}" Foreground="{Binding PackageIdTextColor}" />
         <TextBox Watermark="Source URL" HorizontalAlignment="Stretch" Text="{Binding PackageSourceString}" />
+        <StackPanel Orientation="Horizontal">
+            <CheckBox IsChecked="{Binding MarkForInstallation}">Mark for installation</CheckBox>
+            <CheckBox IsEnabled="{Binding MarkForInstallation}" IsChecked="{Binding InstallAfterAdding}">Perform installation after adding</CheckBox>
+        </StackPanel>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Width="100" Command="{Binding CancelCommand}" HorizontalContentAlignment="Center">Cancel</Button>
-            <Button Width="100" Command="{Binding AddPackageCommand}" HorizontalContentAlignment="Center">Add</Button>
+            <Button Width="100" Command="{Binding AddPackageCommand}" HorizontalContentAlignment="Center" Content="{Binding AddButtonLabel}" />
         </StackPanel>
     </StackPanel>
 </Window>

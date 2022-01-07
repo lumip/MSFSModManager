@@ -45,6 +45,18 @@ namespace MSFSModManager.GUI
                 contentPath = ConfigReader.ReadContentPathFromConfig(@"/media/data/MSFSData/UserCfg.opt");
             }
 
+            IVersionNumber gameVersion = VersionNumber.Infinite;
+            try
+            {
+                gameVersion = new RegistryVersionDetector().Version;
+                GlobalLogger.Log(LogLevel.Info, $"Game version {gameVersion}.");
+            }
+            catch (Exception e)
+            {
+                GlobalLogger.Log(LogLevel.Error, "Could not detect game version, assuming latest! This is caused by error:");
+                GlobalLogger.Log(LogLevel.Error, $"{e.Message}");
+            }
+
             HttpClient client = new HttpClient();
             PackageCache cache = new PackageCache(Path.Join(Path.GetTempPath(), "msfsmodmanager_cache"));
             PackageSourceRegistry sourceRegistry = new PackageSourceRegistry(cache, client);
@@ -54,7 +66,7 @@ namespace MSFSModManager.GUI
             {
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel(database, sourceRegistry, logger),
+                    DataContext = new MainWindowViewModel(database, sourceRegistry, gameVersion, logger, contentPath),
                 };
             }
 

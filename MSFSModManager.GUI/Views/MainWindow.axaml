@@ -37,15 +37,56 @@
         <StackPanel DockPanel.Dock="Bottom" Margin="5" Spacing="5">
             <StackPanel Orientation="Horizontal">
                 <Button Command="{Binding OpenAddPackageDialogCommand}">Add Package Source</Button>
-                <Button IsEnabled="false">Install Selected</Button> 
+                <Button Command="{Binding InstallSelectedPackagesCommand}">Install Selected</Button> 
             </StackPanel>
             <views:LogView Height="200" DataContext="{Binding Log}" />
+
+            <!-- Status Bar -->
+            <Grid Margin="2" ColumnDefinitions="Auto,*,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding GameVersion, StringFormat=Game version: {0}}" TextAlignment="Left" />
+                <TextBlock Grid.Column="1" Text="{Binding ContentPath, StringFormat=Content path: {0}}" TextAlignment="Center" />
+                <views:AvailableVersionFetchingProgressView Grid.Column="2" DataContext="{Binding VersionFetchingProgress}" HorizontalContentAlignment="Right" />
+            </Grid>
         </StackPanel>
 
         <!-- Package List and Details -->
         <Grid ColumnDefinitions="*,4,300">
             <Grid Grid.Column="0">
-                <DataGrid Name="datagrid" Items="{Binding FilteredPackages}" SelectedItem="{Binding SelectedPackage}" AutoGenerateColumns="True" />
+                <DataGrid 
+                        Name="datagrid"
+                        Items="{Binding FilteredPackages}" 
+                        SelectedItem="{Binding SelectedPackage}" 
+                        AutoGenerateColumns="False"
+                        CanUserResizeColumns="True"
+                        CanUserSortColumns="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
+                        <!-- <DataGridTextColumn Width="Auto" Header="Installed Version" Binding="{Binding Version}" TextAlignment="Right" /> -->
+                        <DataGridTemplateColumn Width="Auto" Header="Installed Version">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock
+                                        Text="{Binding Version}"
+                                        TextAlignment="Right"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Width="Auto" Header="Update?">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox
+                                        IsChecked="{Binding MarkedForInstall, Mode=TwoWay}"
+                                        IsEnabled="{Binding HasSource}"
+                                        HorizontalAlignment="Center" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <!-- <DataGridCheckBoxColumn Width="Auto" Header="Update?" Binding="{Binding MarkedForInstall, Mode=TwoWay}" /> -->
+                        <DataGridTextColumn Width="*" Header="Source" Binding="{Binding Source}" />
+                    </DataGrid.Columns>
+                </DataGrid>
             </Grid>
             <GridSplitter Grid.Column="1" ResizeDirection="Columns" />
             <views:PackageDetailsView Grid.Column="2" DockPanel.Dock="Right" VerticalAlignment="Stretch" DataContext="{Binding SelectedPackage}" />

@@ -17,16 +17,16 @@
 
     <StackPanel Margin="4" Spacing="10">
         <StackPanel>
-            <TextBlock Text="Package Id" FontWeight="Bold" />
-            <TextBlock Text="{Binding Id}" />
+            <TextBlock Text="Package Id" FontWeight="Bold"/>
+            <TextBlock Text="{Binding Id}" TextWrapping="Wrap" />
         </StackPanel>
         <StackPanel>
             <TextBlock Text="Title" FontWeight="Bold" />
-            <TextBlock Text="{Binding Title}" />
+            <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
         </StackPanel>
         <StackPanel>
             <TextBlock Text="Creator" FontWeight="Bold" />
-            <TextBlock Text="{Binding Creator}" />
+            <TextBlock Text="{Binding Creator}" TextWrapping="Wrap" />
         </StackPanel>
 
         <StackPanel>
@@ -36,7 +36,7 @@
 
         <StackPanel>
             <TextBlock Text="Package Source" FontWeight="Bold" />
-            <TextBlock Text="{Binding Source}" />
+            <TextBlock Text="{Binding Source}" TextWrapping="Wrap" />
             <StackPanel Orientation="Horizontal">
                 <Button Command="{Binding OpenAddPackageDialogCommand}">Add/Update Source</Button>
                 <Button Command="{Binding RemovePackageSourceCommand}" IsEnabled="{Binding HasSource}">Remove Source</Button>
@@ -52,5 +52,14 @@
         </StackPanel>
 
         <CheckBox IsChecked="{Binding MarkedForInstall}" IsEnabled="{Binding IsLatestVersionNewer}">Select for Update/Installation</CheckBox>
+        <Button Command="{Binding UninstallPackageCommand}" HorizontalAlignment="Stretch">
+            <Button.IsEnabled>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                    <Binding Path="IsInstalled" />
+                    <Binding Path="IsCommunityPackage" />
+                </MultiBinding>
+            </Button.IsEnabled>
+            Uninstall
+        </Button>
     </StackPanel>
 </UserControl>

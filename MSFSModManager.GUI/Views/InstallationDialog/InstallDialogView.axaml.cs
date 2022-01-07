@@ -6,28 +6,28 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Avalonia.ReactiveUI;
-using ReactiveUI;
+using System.Reactive;
 
-using AvaloniaEdit;
+using ReactiveUI;
 
 using MSFSModManager.GUI.ViewModels;
 
 namespace MSFSModManager.GUI.Views
 {
-    partial class LogView : ReactiveUserControl<LogViewModel>
+    partial class InstallDialogView : ReactiveWindow<InstallDialogViewModel>
     {
-        public LogView()
+        public InstallDialogView()
         {
             InitializeComponent();
-
-            var logTextBox = this.FindControl<TextBox>("LogTextBox");
-            this.WhenActivated(d => d(this.ViewModel!.UpdateCaretCommand.Subscribe(caret => logTextBox.CaretIndex = caret)));
+#if DEBUG
+            this.AttachDevTools();
+#endif
+            this.WhenActivated(d => d(ViewModel!.CloseCommand.Subscribe(_ => Close())));
         }
 
         private void InitializeComponent()
         {
             AvaloniaXamlLoader.Load(this);
         }
-
     }
 }

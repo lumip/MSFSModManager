@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MSFSModManager.GUI.ViewModels"
+             xmlns:views="using:MSFSModManager.GUI.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MSFSModManager.GUI.Views.InstallPageView">
+    <DockPanel Margin="4">
+        <Grid HorizontalAlignment="Stretch" DockPanel.Dock="Bottom">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button
+                Grid.Column="0" 
+                Margin="2"
+                Command="{Binding $parent[Window].DataContext.CloseCommand}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Content="Cancel" />
+            <Button
+                Grid.Column="1" 
+                Margin="2"
+                Command="{Binding $parent[Window].DataContext.InstallCommand}"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Content="Install" />
+        </Grid>
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="Packages that will be installed" />
+            <views:PackageInstallationProgressView DataContext="{Binding $parent[Window].DataContext.InstallationProgressList}" />
+            <TextBlock Text="Required packages that are already installed:" />
+            <Grid>
+                <DataGrid 
+                        Items="{Binding $parent[Window].DataContext.AlreadyInstalledPackages}"
+                        HeadersVisibility="None"
+                        AutoGenerateColumns="False"
+                        CanUserResizeColumns="False"
+                        CanUserSortColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
+                        <DataGridTextColumn Width="Auto" Header="Version" Binding="{Binding VersionBounds}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </StackPanel>
+    </DockPanel>
+</UserControl>

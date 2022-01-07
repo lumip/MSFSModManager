@@ -33,6 +33,10 @@ namespace MSFSModManager.GUI.ViewModels
 #region Direct UI properties
         public LogViewModel Log { get; }
 
+        public AvailableVersionFetchingProgressViewModel VersionFetchingProgress { get; }
+
+        public IVersionNumber GameVersion { get; }
+
         private bool _includeSystemPackages;
         public bool IncludeSystemPackages
         {
@@ -71,6 +75,10 @@ namespace MSFSModManager.GUI.ViewModels
             get => _selectedPackage;
             set => this.RaiseAndSetIfChanged(ref _selectedPackage, value);
         }
+
+        private string ContentPath { get; }
+
+        private List<InstalledPackage> _installationCandidates;
         
 #endregion
 
@@ -82,18 +90,29 @@ namespace MSFSModManager.GUI.ViewModels
 #endregion
         
 #region UI Commands
-        public Interaction<AddPackageViewModel, IPackageSource?> AddPackageDialogInteraction { get; }
+        public Interaction<AddPackageViewModel, AddPackageDialogReturnValues> AddPackageDialogInteraction { get; }
         public ReactiveCommand<Unit, Unit> OpenAddPackageDialogCommand { get; }
         public ReactiveCommand<InstalledPackage, Unit> RemovePackageSourceCommand { get; }
+
+        public ReactiveCommand<InstalledPackage, Unit> UninstallPackageCommand { get; }
+
+        public ICommand InstallSelectedPackagesCommand { get; }
+
+        public Interaction<InstallDialogViewModel, Unit> InstallPackagesDialogInteraction { get; }
 #endregion
 
 
-        public MainWindowViewModel(PackageDatabase database, PackageSourceRegistry packageSourceRegistry, LogViewModel log)
+        public MainWindowViewModel(
+            PackageDatabase database, PackageSourceRegistry packageSourceRegistry, IVersionNumber gameVersion, LogViewModel log, string contentPath)
         {
-
             _observableDatabase = new ObservableDatabase(database);
             _packageSourceRegistry = packageSourceRegistry;
             _latestVersionCache = new PackageVersionCache();
+
+            GameVersion = gameVersion;
+            ContentPath = contentPath;
+
+            _installationCandidates = new List<InstalledPackage>();
 
             _database = database;
             Log = log;
@@ -107,16 +126,22 @@ namespace MSFSModManager.GUI.ViewModels
             PackageTypes = types;
 
 
-            AddPackageDialogInteraction = new Interaction<AddPackageViewModel, IPackageSource?>();
+            AddPackageDialogInteraction = new Interaction<AddPackageViewModel, AddPackageDialogReturnValues>();
 
             OpenAddPackageDialogCommand = ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog());
             RemovePackageSourceCommand = ReactiveCommand.Create<InstalledPackage, Unit>(p => {
                 _observableDatabase.RemoveSource(p);
                 return Unit.Default;
             });
+            UninstallPackageCommand = ReactiveCommand.CreateFromTask<InstalledPackage, Unit>(async p => {
+                await DoUninstallPackage(p);
+                return Unit.Default;
+            });
 
             IncludeSystemPackages = false;
             OnlyWithSource = false;
+
+            VersionFetchingProgress = new AvailableVersionFetchingProgressViewModel();
 
             var packageFilterFunction = this
                 .WhenAnyValue(x => x.FilterString, x => x.TypeFilterIndex, x => x.OnlyWithSource, x => x.IncludeSystemPackages, MakeFilter);
@@ -125,23 +150,50 @@ namespace MSFSModManager.GUI.ViewModels
                 .Filter(packageFilterFunction)
                 .Transform(p => new PackageViewModel(
                     p,
-                    ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog(p.Id, p.PackageSource?.ToString() ?? "")),
+                    ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog(p.Id, p.PackageSource?.AsSourceString() ?? "")),
                     RemovePackageSourceCommand,
-                    _latestVersionCache        
+                    UninstallPackageCommand,
+                    _latestVersionCache,
+                    VersionFetchingProgress
                 ))
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Bind(out _filteredPackages)
                 .Subscribe();
+
+            InstallPackagesDialogInteraction = new Interaction<InstallDialogViewModel, Unit>();
+            InstallSelectedPackagesCommand = ReactiveCommand.CreateFromTask(DoOpenInstallDialog);
         }
 
         private async Task DoOpenAddPackageDialog(string packageId = "", string packageSourceString = "")
         {
             var dialog = new AddPackageViewModel(_database, _packageSourceRegistry, packageId, packageSourceString);
-            var packageSource = await AddPackageDialogInteraction.Handle(dialog);
-            if (packageSource != null)
+            var addPackageDialogReturn = await AddPackageDialogInteraction.Handle(dialog);
+
+            if (addPackageDialogReturn?.PackageSource != null)
             {
-                _observableDatabase.AddPackageSource(packageSource);
+                _observableDatabase.AddPackageSource(addPackageDialogReturn.PackageSource);
+                InstalledPackage package = _database.GetInstalledPackage(addPackageDialogReturn.PackageSource.PackageId);
+
+                if (addPackageDialogReturn.MarkForInstallation)
+                {
+                    _installationCandidates.Add(package);
+
+                    if (addPackageDialogReturn.InstallAfterAdding)
+                        InstallSelectedPackagesCommand.Execute(null);
+                }
             }
+        }
+
+        private async Task DoOpenInstallDialog()
+        {
+            var dialog = new InstallDialogViewModel(_observableDatabase, _installationCandidates, GameVersion);
+            await InstallPackagesDialogInteraction.Handle(dialog);
+            _installationCandidates.Clear();
+        }
+
+        private async Task DoUninstallPackage(InstalledPackage package)
+        {
+            await Task.Run(() => _observableDatabase.Uninstall(package));
         }
 
         private Func<InstalledPackage, bool> MakeFilter(string filterString, int filterTypeIndex, bool onlyWithSource, bool includeSystemPackages)
@@ -159,7 +211,6 @@ namespace MSFSModManager.GUI.ViewModels
             FilterString = string.Empty;
             TypeFilterIndex = 0;
         }
-
 
     }
 }

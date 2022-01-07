@@ -21,6 +21,8 @@ namespace MSFSModManager.GUI.ViewModels
 
         public bool IsInstalled => (_package.Manifest != null);
 
+        public bool IsCommunityPackage => _package.IsCommunityPackage;
+
         private bool _markedForInstall;
         public bool MarkedForInstall
         {
@@ -58,7 +60,15 @@ namespace MSFSModManager.GUI.ViewModels
         public ICommand OpenAddPackageDialogCommand { get; }
         public ICommand RemovePackageSourceCommand { get; }
 
-        public PackageViewModel(InstalledPackage package, ICommand openAddPackageDialogCommand, ReactiveCommand<InstalledPackage, Unit> removePackageSourceCommand, PackageVersionCache versionCache)
+        public ICommand UninstallPackageCommand { get; }
+
+        public PackageViewModel(
+            InstalledPackage package,
+            ICommand openAddPackageDialogCommand,
+            ReactiveCommand<InstalledPackage, Unit> removePackageSourceCommand,
+            ReactiveCommand<InstalledPackage, Unit> uninstallPackageCommand,
+            PackageVersionCache versionCache,
+            AvailableVersionFetchingProgressViewModel versionFetchingProgressViewModel)
         {
             _package = package;
             _markedForInstall = false;
@@ -73,25 +83,43 @@ namespace MSFSModManager.GUI.ViewModels
                 .Select(v => v?.ToString() ?? "")
                 .ToProperty(this, x => x.LatestVersionString, out _latestVersionString);
 
-            FetchLatestVersion(versionCache).ContinueWith(
+            FetchLatestVersion(versionCache, versionFetchingProgressViewModel).ContinueWith(
                 v => LatestVersion = v.Result,
                 TaskContinuationOptions.OnlyOnRanToCompletion
             );
 
             OpenAddPackageDialogCommand = openAddPackageDialogCommand;
-            RemovePackageSourceCommand = ReactiveCommand.Create(() => {
-                removePackageSourceCommand.Execute(_package).Wait();
+            RemovePackageSourceCommand = ReactiveCommand.CreateFromTask(async () => {
+                await removePackageSourceCommand.Execute(_package);
+            });
+            UninstallPackageCommand = ReactiveCommand.Create(async () => {
+                await uninstallPackageCommand.Execute(_package);
             });
         }
 
-        private async Task<IVersionNumber?> FetchLatestVersion(PackageVersionCache versionCache)
+        private async Task<IVersionNumber?> FetchLatestVersion(PackageVersionCache versionCache, AvailableVersionFetchingProgressViewModel versionFetchingProgressViewModel)
         {
             if (_package.PackageSource != null)
             {
                 if (versionCache.HasVersion(_package))
                     return versionCache.GetCachedVersion(_package);
 
-                IVersionNumber? version = (await _package.PackageSource.ListAvailableVersions()).Max();
+                IVersionNumber? version;
+                try
+                {
+                    versionFetchingProgressViewModel.AddNewInProgress();
+                    version = (await _package.PackageSource.ListAvailableVersions()).Max();
+                }
+                catch (Exception e)
+                {
+                    GlobalLogger.Log(LogLevel.Error, $"Could not fetch available version for package {_package.Id}:\n{e.Message}");
+                    throw;
+                }
+                finally
+                {
+                    versionFetchingProgressViewModel.MarkOneAsCompleted();
+                }
+
                 if (version != null) versionCache.UpdateCachedVersion(_package, version);
 
                 return version;
