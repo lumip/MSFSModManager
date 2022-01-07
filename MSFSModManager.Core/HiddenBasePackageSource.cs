@@ -10,6 +10,17 @@ using MSFSModManager.Core.PackageSources;
 
 namespace MSFSModManager.Core
 {
+    /// <summary>
+    /// A package source for "fs-base" packages.
+    /// 
+    /// These packages are all built-in system packages that are installed/updated
+    /// by the game itself and cannot be obtained via the default package source mechanisms.
+    /// This class allows treating them in the default way during dependency resolution
+    /// by providing dummy manifests.
+    /// 
+    /// <see cref="IPackageSource.GetInstaller(IVersionNumber)" /> and <see cref="IPackageSource.ListAvailableVersions" />
+    /// are not available.
+    /// </summary>
     public class HiddenBasePackageSource : AbstractPackageSource
     {
         public override string PackageId { get; }
@@ -43,6 +54,11 @@ namespace MSFSModManager.Core
         }
 
         public override JToken Serialize()
+        {
+            throw new NotSupportedException();
+        }
+
+        public override string AsSourceString()
         {
             throw new NotSupportedException();
         }

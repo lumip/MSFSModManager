@@ -8,6 +8,17 @@ using MSFSModManager.Core.PackageSources;
 
 namespace MSFSModManager.Core
 {
+
+    /// <summary>
+    /// A decorator for a <see cref="IPackageSourceRepository" /> instance that provides
+    /// dummy sources for hidden "fs-base" packages.
+    /// 
+    /// These packages are all built-in system packages that are installed/updated
+    /// by the game itself and not present in the official packages folder. They cannot
+    /// be obtained via the default package source mechanisms and are invisible to <see cref="PackageDatabase" />.
+    /// This decorator allows treating them in the default way nevertheless to allow
+    /// package dependency resolution to work.
+    /// </summary>
     public class HiddenBasePackageSourceRepositoryDecorator : IPackageSourceRepository
     {
 

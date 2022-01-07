@@ -16,6 +16,9 @@ using MSFSModManager.Core.PackageSources;
 namespace MSFSModManager.Core
 {
 
+    /// <summary>
+    /// Database of all locally installed packages and/or known package sources.
+    /// </summary>
     public class PackageDatabase : IPackageDatabase
     {
 

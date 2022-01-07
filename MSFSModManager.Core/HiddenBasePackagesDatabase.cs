@@ -8,6 +8,17 @@ using MSFSModManager.Core.PackageSources;
 
 namespace MSFSModManager.Core
 {
+    /// <summary>
+    /// A decorator for a <see cref="IPackageDatabase" /> instance that provides
+    /// implementations for hidden "fs-base" packages.
+    /// 
+    /// These packages are all built-in system packages that are installed/updated
+    /// by the game itself and not present in the official packages folder. They are
+    /// therefore invisible to <see cref="PackageDatabase" />.
+    /// This decorator wraps around <see cref="IPackageDatabase" /> instance and
+    /// ensures that <see cref="IPackageDatabase.Contains(string, VersionBounds)" />
+    /// return true for hidden "fs-base" packages.
+    /// </summary>
     public class HiddenBasePackagesDatabase : IPackageDatabase
     {
 
