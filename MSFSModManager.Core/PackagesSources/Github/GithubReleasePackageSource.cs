@@ -228,6 +228,16 @@ namespace MSFSModManager.Core.PackageSources.Github
             return $"https://github.com/{_repository.Organisation}/{_repository.Name} (Releases, {_artifactSelector})";
         }
 
+        public override string AsSourceString()
+        {
+            string sourceString = $"https://github.com/{_repository.Organisation}/{_repository.Name}";
+            if (_artifactSelector is RegexArtifactSelector)
+            {
+                sourceString += " " + ((RegexArtifactSelector)_artifactSelector).ToString();
+            }
+            return sourceString;
+        }
+
         public override async Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
         {
             return (await FetchGithubReleases()).Select(r => VersionNumber.FromString(r.Name));

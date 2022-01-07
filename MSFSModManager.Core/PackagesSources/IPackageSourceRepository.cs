@@ -8,7 +8,7 @@ namespace MSFSModManager.Core.PackageSources
 {
 
     /// <summary>
-    /// A repository that hosts several package sources combined.
+    /// A repository that hosts several package sources.
     /// </summary>
     public interface IPackageSourceRepository
     {

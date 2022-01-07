@@ -66,7 +66,9 @@ namespace MSFSModManager.Core.PackageSources
             return new ZipFilePackageSource(packageId, filePath);
         }
 
-        public override string ToString()
+        public override string ToString() => AsSourceString();
+
+        public override string AsSourceString()
         {
             return _filePath;
         }

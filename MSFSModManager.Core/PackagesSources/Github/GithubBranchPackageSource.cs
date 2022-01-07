@@ -95,6 +95,11 @@ namespace MSFSModManager.Core.PackageSources.Github
             return $"https://github.com/{_repository.Organisation}/{_repository.Name} (Branch {_branch})";
         }
 
+        public override string AsSourceString()
+        {
+            return $"https://github.com/{_repository.Organisation}/{_repository.Name}@{_branch}";
+        }
+
         public override async Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
         {
             return (await FetchCommits()).Select(c => new GitCommitVersionNumber(c.Sha, c.Date));

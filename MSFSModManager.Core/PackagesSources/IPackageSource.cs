@@ -17,6 +17,8 @@ namespace MSFSModManager.Core.PackageSources
 
         Task<IEnumerable<IVersionNumber>> ListAvailableVersions();
 
+        string AsSourceString();
+
         string PackageId { get; }
 
     }
