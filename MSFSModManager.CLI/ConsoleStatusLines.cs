@@ -33,9 +33,12 @@ namespace MSFSModManager.CLI
 
         public ConsoleRenderer.LineHandle GetLineHandle(string packageId)
         {
-            string k = packageId;
-            if (!_lines.ContainsKey(k)) _lines.Add(k, _renderer.MakeNewLineHandle());
-            return _lines[k];
+            lock (_lines)
+            {
+                string k = packageId;
+                if (!_lines.ContainsKey(k)) _lines.Add(k, _renderer.MakeNewLineHandle());
+                return _lines[k];
+            }
         }
     }
 }

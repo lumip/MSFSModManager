@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Threading.Tasks;
 
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;
@@ -279,14 +280,16 @@ namespace MSFSModManager.CLI
             }
 
             GlobalLogger.Log(LogLevel.Info, "Installing packages:");
+            List<Task> installTasks = new List<Task>();
             foreach (var package in toInstall)
             {
                 GlobalLogger.Log(LogLevel.Info, $"{package.Id,-60} {package.Version,14}");
 
                 IPackageInstaller installer = sourceRepository.GetSource(package.Id).GetInstaller(package.SourceVersion);
                 
-                database.InstallPackage(installer, monitor).Wait();
+                installTasks.Add(database.InstallPackage(installer, monitor));
             }
+             Task.WaitAll(installTasks.ToArray());
 
             return ReturnCode.Success;
         }
@@ -428,11 +431,14 @@ namespace MSFSModManager.CLI
             }
 
             GlobalLogger.Log(LogLevel.Info, "Installing packages:");
+            List<Task> installTasks = new List<Task>();
             foreach (var package in toInstall)
             {
                 GlobalLogger.Log(LogLevel.Info, $"{package.Id,-60} {package.Version,14}");
-                database.InstallPackage(source.GetSource(package.Id).GetInstaller(package.SourceVersion), monitor).Wait();
+                var installer = source.GetSource(package.Id).GetInstaller(package.SourceVersion);
+                installTasks.Add(database.InstallPackage(installer, monitor));
             }
+            Task.WaitAll(installTasks.ToArray());
 
             return ReturnCode.Success;
         }
