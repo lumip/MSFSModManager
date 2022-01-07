@@ -21,6 +21,8 @@ namespace MSFSModManager.Core.PackageSources
 
         public bool IsCompleted => CurrentSize == TotalSize;
 
+        public bool IsIndeterminate => false;
+
         public HttpClientDownloadProgressMonitor(string packageId, IVersionNumber version, long totalSize)
         {
             PackageId = packageId;
@@ -57,6 +59,8 @@ namespace MSFSModManager.Core.PackageSources
         public float CurrentPercentage => 0.0f;
 
         public object? UserData { get; set; }
+
+        public bool IsIndeterminate => true;
 
         public event DownloadProgressHandler? DownloadProgress;
 

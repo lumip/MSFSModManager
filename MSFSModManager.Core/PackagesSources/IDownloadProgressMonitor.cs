@@ -18,6 +18,8 @@ namespace MSFSModManager.Core.PackageSources
         object? UserData { get; set; }
 
         event DownloadProgressHandler? DownloadProgress;
+
+        bool IsIndeterminate { get; }
     }
 
     public delegate void DownloadStartedHandler(IDownloadProgressMonitor monitor);

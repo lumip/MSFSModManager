@@ -70,16 +70,7 @@ namespace MSFSModManager.CLI
 
         public void WriteLine(string text, ConsoleColor color)
         {
-            lock (_lockObject)
-            {
-                Console.ForegroundColor = color;
-                Console.WriteLine(text);
-                Console.ResetColor();
-
-                int lineBreaks = text.Count(c => c == '\n') + 1;
-
-                UpdateHandles(lineBreaks);
-            }
+            Write(text + "\n", color);
         }
 
         public void Write(string text)
@@ -97,7 +88,7 @@ namespace MSFSModManager.CLI
                 Console.Write(text);
                 Console.ResetColor();
 
-                int lineBreaks = text.Count(c => c == '\n') + 1;
+                int lineBreaks = text.Count(c => c == '\n');
                 UpdateHandles(lineBreaks);
             }
         }

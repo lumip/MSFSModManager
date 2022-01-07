@@ -58,5 +58,21 @@ namespace MSFSModManager.CLI
             line.Clear();
             line.Write($"Extracting {packageId} {versionNumber} ...");
         }
+
+        public void CopyingStarted(string packageId, IVersionNumber versionNumber)
+        {
+            ConsoleRenderer.LineHandle line = _statusLines.GetLineHandle(packageId);
+
+            line.Clear();
+            line.Write($"Copying {packageId} {versionNumber} ...");
+        }
+
+        public void CopyingCompleted(string packageId, IVersionNumber versionNumber)
+        {
+            ConsoleRenderer.LineHandle line = _statusLines.GetLineHandle(packageId);
+
+            line.Clear();
+            line.Write($"Copying {packageId} {versionNumber} completed.");
+        }
     }
 }

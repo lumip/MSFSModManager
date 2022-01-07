@@ -12,6 +12,9 @@ namespace MSFSModManager.Core.PackageSources
         void DownloadStarted(IDownloadProgressMonitor monitor);
         void ExtractionStarted(string packageId, IVersionNumber versionNumber);
         void ExtractionCompleted(string packageId, IVersionNumber versionNumber);
+
+        void CopyingStarted(string packageId, IVersionNumber versionNumber);
+        void CopyingCompleted(string packageId, IVersionNumber versionNumber);
     }
 
 }
