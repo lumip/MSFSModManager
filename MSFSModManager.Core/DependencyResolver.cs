@@ -15,6 +15,97 @@ namespace MSFSModManager.Core
     public static class DependencyResolver
     {
 
+        private static Dictionary<string, DependencyNode> BuildDatabaseDependencyGraph(IPackageDatabase database)
+        {
+            Dictionary<string, DependencyNode> nodes = new Dictionary<string, DependencyNode>();
+            HashSet<DependencyNode> floatingNodes = new HashSet<DependencyNode>();
+
+            Queue<DependencyNode> resolverQueue = new Queue<DependencyNode>();
+            foreach (var package in database.Packages.Where(p => p.Manifest != null))
+            {
+                DependencyNode node;
+                if (!nodes.TryGetValue(package.Id, out node))
+                {
+                    node = new DependencyNode(package.Id);
+                    nodes.Add(package.Id, node);
+                }
+                foreach (var dependency in package.Manifest!.Dependencies)
+                {
+                    DependencyNode dependencyNode;
+                    if (!nodes.TryGetValue(dependency.Id, out dependencyNode))
+                    {
+                        dependencyNode = new DependencyNode(dependency.Id);
+                        nodes.Add(dependency.Id, dependencyNode);
+                        floatingNodes.Add(dependencyNode);
+                    }
+                    node.AddChild(dependencyNode, dependency.VersionBounds);
+                }
+                node.Actualize(package.Manifest);
+
+                if (node.Parents.Count > 0)
+                {
+                    floatingNodes.Remove(node);
+                }
+            }
+
+            return nodes;
+        }
+
+        /// <summary>
+        /// Finds all currently installed packages that directly or indirectly depends on at least one of a collection of packages.
+        /// </summary>
+        /// <param name="ofPackages"></param>
+        /// <param name="database"></param>
+        /// <returns></returns>
+        public static HashSet<string> FindDependentPackages(
+            IEnumerable<string> ofPackages,
+            IPackageDatabase database
+        )
+        {
+            Dictionary<string, DependencyNode> nodes = BuildDatabaseDependencyGraph(database);
+
+            HashSet<string> dependentPackages = new HashSet<string>();
+            Queue<DependencyNode> resolverQueue = new Queue<DependencyNode>();
+
+            foreach (var packageId in ofPackages)
+            {
+                DependencyNode node;
+                if (nodes.TryGetValue(packageId, out node))
+                {
+                    foreach (var dependent in node.Parents)
+                    {
+                        resolverQueue.Enqueue(dependent);
+                    }
+                }
+            }
+
+            while (resolverQueue.Count > 0)
+            {
+                var node = resolverQueue.Dequeue();
+                if (!dependentPackages.Contains(node.PackageId))
+                {
+                    dependentPackages.Add(node.PackageId);
+                    foreach (var dependent in node.Parents)
+                    {
+                        resolverQueue.Enqueue(dependent);
+                    }
+                }
+            }
+
+            return dependentPackages;
+        }
+
+        /// <summary>
+        /// Resolves required dependencies for a collection of packages that are about to be installed.
+        /// 
+        /// Will prefer to resolve a dependency with an already installed package, if it meets the version bound.
+        /// Otherwise, will search through package sources to obtain a compatible version of the dependency.
+        /// </summary>
+        /// <param name="installationCandidates">Enumerable of packages for which to resolve dependencies.</param>
+        /// <param name="packageSources">Repository of sources from which to search for available dependency packages.</param>
+        /// <param name="gameVersion">Version number of the main game.</param>
+        /// <param name="monitor">An optional progress monitor.</param>
+        /// <returns>Enumerable of dependencies for the given installation candidates.</returns>
         public static async Task<IEnumerable<PackageManifest>> ResolveDependencies(
             IEnumerable<PackageDependency> installationCandidates, 
             IPackageSourceRepository packageSources,

@@ -28,8 +28,9 @@ namespace MSFSModManager.CLI
             Success = 0,
             ModeError = 1,
             ArgumentError = 2,
-            NoPackageSource = 3,
-            UnknownError = 4
+            NoPackageSourceError = 3,
+            UnknownError = 4,
+            OperationNotAllowedError = 5
         }
 
         static (Dictionary<string, string>, HashSet<string>) ParseArguments(string[] args)
@@ -348,7 +349,46 @@ namespace MSFSModManager.CLI
         static ReturnCode Uninstall(string contentPath, string packageId)
         {
             (IPackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
+
+            // resolve packages depending on the package to be uninstalled
+            InstalledPackage? package = null;
+            try
+            {
+                package = database.GetInstalledPackage(packageId);
+            }
+            catch (PackageNotInstalledException) { }
+
+            if (package?.Manifest == null)
+            {
+                GlobalLogger.Log(LogLevel.Output, $"Package {packageId} not installed. Nothing to do.");
+                return ReturnCode.Success;
+            }
+
+            if (package.IsSystemPackage)
+            {
+                GlobalLogger.Log(LogLevel.CriticalError, $"Package {packageId} is not a community package and cannot be uninstalled.");
+                return ReturnCode.OperationNotAllowedError;
+            }
+
+            IEnumerable<string> dependentPackages = DependencyResolver.FindDependentPackages(
+                new[] { packageId }, database
+            );
+
+            if (dependentPackages.Count() > 0)
+            {
+                GlobalLogger.Log(LogLevel.Output, 
+                    $"The following installed packages depend on {packageId} and must be uninstalled first:");
+                foreach (var dependentId in dependentPackages)
+                {
+                    GlobalLogger.Log(LogLevel.Output, dependentId);
+                }
+                GlobalLogger.Log(LogLevel.CriticalError,
+                    "Cannot uninstall package with installed dependants.");
+                return ReturnCode.OperationNotAllowedError;
+            }
+
             database.Uninstall(packageId);
+            GlobalLogger.Log(LogLevel.Output, $"Successfully removed {packageId}.");
             return ReturnCode.Success;
         }
 
@@ -366,7 +406,7 @@ namespace MSFSModManager.CLI
             if (source == null)
             {
                 GlobalLogger.Log(LogLevel.CriticalError, $"No source for {packageId} known.");
-                return ReturnCode.NoPackageSource;
+                return ReturnCode.NoPackageSourceError;
             }
 
             foreach (var version in source.ListAvailableVersions().Result)
