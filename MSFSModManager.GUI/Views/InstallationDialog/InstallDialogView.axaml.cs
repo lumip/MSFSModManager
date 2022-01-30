@@ -11,6 +11,7 @@ using System.Reactive;
 using ReactiveUI;
 
 using MSFSModManager.GUI.ViewModels;
+using System.ComponentModel;
 
 namespace MSFSModManager.GUI.Views
 {
@@ -23,6 +24,12 @@ namespace MSFSModManager.GUI.Views
             this.AttachDevTools();
 #endif
             this.WhenActivated(d => d(ViewModel!.CloseCommand.Subscribe(_ => Close())));
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            ViewModel!.CancelCommand.Execute().Subscribe();
+            base.OnClosing(e);
         }
 
         private void InitializeComponent()

@@ -7,7 +7,9 @@ using System.Text;
 using System.Linq;
 using ReactiveUI;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Reactive;
 
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;
@@ -16,20 +18,88 @@ using DynamicData;
 namespace MSFSModManager.GUI.ViewModels
 {
 
-    public class ObservableDatabase : ReactiveObject
+    class PackageCommandFactory
+    {
+        private MainWindowViewModel _mainViewModel;
+
+        public PackageCommandFactory(MainWindowViewModel mainViewModel)
+        {
+            _mainViewModel = mainViewModel;
+        }
+
+        public IReactiveCommand GetOpenAddPackageSourceDialogCommand(InstalledPackage package)
+        {
+            return ReactiveCommand.CreateFromTask(
+                async () => await _mainViewModel.DoOpenAddPackageDialog(
+                    package.Id, package.PackageSource?.AsSourceString() ?? ""
+                )
+            );
+        }
+
+        public IReactiveCommand GetRemovePackageSourceCommand(InstalledPackage package)
+        {
+            return ReactiveCommand.Create(() =>  _mainViewModel.RemovePackageSourceCommand.Execute(package));            
+        }
+
+        public IReactiveCommand GetUninstallPackageCommand(InstalledPackage package)
+        {
+            return ReactiveCommand.Create(() => _mainViewModel.UninstallPackageCommand.Execute(package));
+        } 
+    }
+
+    class ObservableDatabase : ReactiveObject
     {
 
         private IPackageDatabase _database;
         public IPackageDatabase Database => _database;
 
-        public SourceCache<InstalledPackage, string> Packages { get; }
-        public IObservable<IChangeSet<InstalledPackage, string>> Connect() => Packages.Connect();
+        public SourceCache<PackageViewModel, string> Packages { get; }
+        public IObservable<IChangeSet<PackageViewModel, string>> Connect() => Packages.Connect();
 
-        public ObservableDatabase(IPackageDatabase database)
+
+        private PackageCommandFactory _packageCommandFactory;
+        private PackageVersionCache _versionCache;
+        private AvailableVersionFetchingProgressViewModel _versionFetchingProgressViewModel;
+
+        public ObservableDatabase(
+            IPackageDatabase database,
+            PackageCommandFactory packageCommandFactory,
+            PackageVersionCache versionCache,
+            AvailableVersionFetchingProgressViewModel versionFetchingProgressViewModel)
         {
             _database = database;
-            Packages = new SourceCache<InstalledPackage, string>(p => p.Id);
-            Packages.AddOrUpdate(_database.Packages);
+
+            _packageCommandFactory = packageCommandFactory;
+            _versionCache = versionCache;
+            _versionFetchingProgressViewModel = versionFetchingProgressViewModel;
+
+            Packages = new SourceCache<PackageViewModel, string>(p => p.Id);
+            Packages.AddOrUpdate(
+                _database.Packages.Select(CreateViewModel)
+            );
+        }
+
+        private PackageViewModel CreateViewModel(InstalledPackage package)
+        {
+            return new PackageViewModel(
+                    package,
+                    _packageCommandFactory.GetOpenAddPackageSourceDialogCommand(package),
+                    _packageCommandFactory.GetRemovePackageSourceCommand(package),
+                    _packageCommandFactory.GetUninstallPackageCommand(package),
+                    _versionCache,
+                    _versionFetchingProgressViewModel
+            );
+        }
+
+        private void AddOrUpdateViewModel(InstalledPackage package)
+        {
+            PackageViewModel pvm = CreateViewModel(package);
+
+            var optionalPvm = Packages.Lookup(package.Id);
+            if (optionalPvm.HasValue)
+                pvm.MarkedForInstall = optionalPvm.Value.MarkedForInstall;
+
+            Packages.AddOrUpdate(pvm);
         }
 
         public void AddPackageSource(IPackageSource source)
@@ -37,7 +107,7 @@ namespace MSFSModManager.GUI.ViewModels
             _database.AddPackageSource(source.PackageId, source);
 
             InstalledPackage p = _database.GetInstalledPackage(source.PackageId);
-            Packages.AddOrUpdate(p);
+            AddOrUpdateViewModel(p);
         }
 
         public void RemoveSource(InstalledPackage p)
@@ -50,17 +120,17 @@ namespace MSFSModManager.GUI.ViewModels
             }
             else
             {
-                Packages.AddOrUpdate(p);
+                AddOrUpdateViewModel(p);
             }
         }
 
-        public async Task InstallPackage(IPackageInstaller installer, IProgressMonitor? monitor = null)
+        public async Task InstallPackage(
+            IPackageInstaller installer, IProgressMonitor monitor, CancellationToken cancellationToken
+        )
         {
-            await _database.InstallPackage(installer, monitor);
-            if (!_database.Contains(installer.PackageId))
-            {
-                Packages.AddOrUpdate(_database.GetInstalledPackage(installer.PackageId));
-            }
+            await _database.InstallPackage(installer, monitor, cancellationToken);
+            InstalledPackage p = _database.GetInstalledPackage(installer.PackageId);
+            AddOrUpdateViewModel(p);
         }
 
         public void Uninstall(InstalledPackage p)
@@ -73,9 +143,18 @@ namespace MSFSModManager.GUI.ViewModels
             }
             else
             {
-                Packages.AddOrUpdate(p);
+                AddOrUpdateViewModel(p);
             }
+        }
 
+        public PackageViewModel GetInstalledPackage(string packageId)
+        {
+            var optionalPvm = Packages.Lookup(packageId);
+            if (optionalPvm.HasValue)
+            {
+                return optionalPvm.Value;
+            }
+            throw new PackageNotInstalledException(packageId);
         }
     }
 }

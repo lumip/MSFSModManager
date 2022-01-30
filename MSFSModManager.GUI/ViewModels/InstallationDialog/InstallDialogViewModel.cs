@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using ReactiveUI;
@@ -37,19 +38,14 @@ namespace MSFSModManager.GUI.ViewModels
             private set => this.RaiseAndSetIfChanged(ref _alreadyInstalledPackages, value);
         }
 
-        // private ObservableCollection<PackageManifest> _toInstallPackages;
-        // public ObservableCollection<PackageManifest> ToInstallPackages
-        // {
-        //     get => _toInstallPackages;
-        //     private set => this.RaiseAndSetIfChanged(ref _toInstallPackages, value);
-        // }
-
         private IEnumerable<PackageManifest>? _toInstallPackages;
 
         private DependencyResolutionPageViewModel _dependencyResolutionView;
 
         public ReactiveCommand<Unit, Unit> InstallCommand { get; }
         public ReactiveCommand<Unit, Unit> CloseCommand { get; }
+
+        public ReactiveCommand<Unit, Unit> CancelCommand { get; }
 
         private PackageInstallationProgressViewModel? _installationProgressList;
         public PackageInstallationProgressViewModel? InstallationProgressList
@@ -60,25 +56,30 @@ namespace MSFSModManager.GUI.ViewModels
 
         private IVersionNumber _gameVersion;
 
+        private CancellationTokenSource _cancellationTokenSource;
+
         public InstallDialogViewModel(ObservableDatabase database, IEnumerable<InstalledPackage> installationCandidates, IVersionNumber gameVersion)
         {
             _database = database;
             _gameVersion = gameVersion;
             _installationCandidates = installationCandidates;
             _alreadyInstalledPackages = new ObservableCollection<InstallationCandidateViewModel>();
-            // _toInstallPackages = new ObservableCollection<PackageManifest>();
             _toInstallPackages = null;
 
             _dependencyResolutionView = new DependencyResolutionPageViewModel();
             _content = _dependencyResolutionView;
 
+            _installationProgressList = null;
+            _cancellationTokenSource = new CancellationTokenSource();
+
+
             InstallCommand = ReactiveCommand.CreateFromTask(DoInstall);
+
+            CancelCommand = ReactiveCommand.Create(() => _cancellationTokenSource.Cancel());
 
             CloseCommand = ReactiveCommand.Create(() => Unit.Default);
 
-            _installationProgressList = null;
-
-            Task.Run(DoResolveDependencies);
+            Task.Run(DoResolveDependencies, _cancellationTokenSource.Token);
         }
 
         public async Task DoResolveDependencies()
@@ -103,6 +104,7 @@ namespace MSFSModManager.GUI.ViewModels
                         _gameVersion,
                         monitor)
                     );
+                GlobalLogger.Log(LogLevel.Info, "Dependency resolution complete.");
             }
             catch (AggregateException e)
             {
@@ -151,7 +153,11 @@ namespace MSFSModManager.GUI.ViewModels
                 GlobalLogger.Log(LogLevel.Info, $"{package.Id,-60} {package.Version,14}");
 
                 IPackageInstaller installer = sourceRepository.GetSource(package.Id).GetInstaller(package.SourceVersion);
-                Task installationTask = Task.Run(async () => await _database.InstallPackage(installer, (IProgressMonitor)InstallationProgressList!));
+                Task installationTask = Task.Run(
+                    async () => await _database.InstallPackage(
+                        installer, (IProgressMonitor)InstallationProgressList!, _cancellationTokenSource.Token
+                    )
+                );
                 installationTasks.Add(installationTask);
                 InstallationProgressList!.SetInstallationTask(package.Id, installationTask);
             }

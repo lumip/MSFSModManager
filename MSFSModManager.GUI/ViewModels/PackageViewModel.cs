@@ -18,6 +18,7 @@ namespace MSFSModManager.GUI.ViewModels
     {
 
         private InstalledPackage _package;
+        public InstalledPackage Package => _package;
 
         public bool IsInstalled => (_package.Manifest != null);
 
@@ -57,16 +58,16 @@ namespace MSFSModManager.GUI.ViewModels
         public bool IsLatestVersionNewer => _isLatestVersionNewer.Value;
 
         
-        public ICommand OpenAddPackageDialogCommand { get; }
-        public ICommand RemovePackageSourceCommand { get; }
+        public IReactiveCommand OpenAddPackageDialogCommand { get; }
+        public IReactiveCommand RemovePackageSourceCommand { get; }
 
-        public ICommand UninstallPackageCommand { get; }
+        public IReactiveCommand UninstallPackageCommand { get; }
 
         public PackageViewModel(
             InstalledPackage package,
-            ICommand openAddPackageDialogCommand,
-            ReactiveCommand<InstalledPackage, Unit> removePackageSourceCommand,
-            ReactiveCommand<InstalledPackage, Unit> uninstallPackageCommand,
+            IReactiveCommand openAddPackageDialogCommand,
+            IReactiveCommand removePackageSourceCommand,
+            IReactiveCommand uninstallPackageCommand,
             PackageVersionCache versionCache,
             AvailableVersionFetchingProgressViewModel versionFetchingProgressViewModel)
         {
@@ -89,12 +90,8 @@ namespace MSFSModManager.GUI.ViewModels
             );
 
             OpenAddPackageDialogCommand = openAddPackageDialogCommand;
-            RemovePackageSourceCommand = ReactiveCommand.CreateFromTask(async () => {
-                await removePackageSourceCommand.Execute(_package);
-            });
-            UninstallPackageCommand = ReactiveCommand.Create(async () => {
-                await uninstallPackageCommand.Execute(_package);
-            });
+            RemovePackageSourceCommand = removePackageSourceCommand;
+            UninstallPackageCommand = uninstallPackageCommand;
         }
 
         private async Task<IVersionNumber?> FetchLatestVersion(PackageVersionCache versionCache, AvailableVersionFetchingProgressViewModel versionFetchingProgressViewModel)

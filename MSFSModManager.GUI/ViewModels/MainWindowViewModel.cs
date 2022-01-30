@@ -77,15 +77,16 @@ namespace MSFSModManager.GUI.ViewModels
         }
 
         private string ContentPath { get; }
-
-        private List<InstalledPackage> _installationCandidates;
         
 #endregion
 
 #region Derived UI Properties
-        private IDisposable _dynamicDataPackages;
+        private IDisposable _filteredPackagesPipeline;
         private ReadOnlyObservableCollection<PackageViewModel> _filteredPackages;
         public ReadOnlyObservableCollection<PackageViewModel> FilteredPackages => _filteredPackages;
+
+        private IDisposable _installationCandidatesPipeline;
+        private readonly ReadOnlyObservableCollection<PackageViewModel> _installationCandidates;
 
 #endregion
         
@@ -105,14 +106,22 @@ namespace MSFSModManager.GUI.ViewModels
         public MainWindowViewModel(
             PackageDatabase database, PackageSourceRegistry packageSourceRegistry, IVersionNumber gameVersion, LogViewModel log, string contentPath)
         {
-            _observableDatabase = new ObservableDatabase(database);
-            _packageSourceRegistry = packageSourceRegistry;
             _latestVersionCache = new PackageVersionCache();
+            VersionFetchingProgress = new AvailableVersionFetchingProgressViewModel();
+
+
+            _observableDatabase = new ObservableDatabase(
+                database,
+                new PackageCommandFactory(this),
+                _latestVersionCache,
+                VersionFetchingProgress
+            );
+            
+            _packageSourceRegistry = packageSourceRegistry;
+            
 
             GameVersion = gameVersion;
             ContentPath = contentPath;
-
-            _installationCandidates = new List<InstalledPackage>();
 
             _database = database;
             Log = log;
@@ -141,30 +150,27 @@ namespace MSFSModManager.GUI.ViewModels
             IncludeSystemPackages = false;
             OnlyWithSource = false;
 
-            VersionFetchingProgress = new AvailableVersionFetchingProgressViewModel();
-
             var packageFilterFunction = this
                 .WhenAnyValue(x => x.FilterString, x => x.TypeFilterIndex, x => x.OnlyWithSource, x => x.IncludeSystemPackages, MakeFilter);
 
-            _dynamicDataPackages = _observableDatabase.Connect()
+            _filteredPackagesPipeline = _observableDatabase.Connect()
                 .Filter(packageFilterFunction)
-                .Transform(p => new PackageViewModel(
-                    p,
-                    ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog(p.Id, p.PackageSource?.AsSourceString() ?? "")),
-                    RemovePackageSourceCommand,
-                    UninstallPackageCommand,
-                    _latestVersionCache,
-                    VersionFetchingProgress
-                ))
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Bind(out _filteredPackages)
                 .Subscribe();
 
+            _installationCandidatesPipeline = _observableDatabase.Connect()
+                .AutoRefresh(pvm => pvm.MarkedForInstall)
+                .Filter(pvm => pvm.MarkedForInstall)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Bind(out _installationCandidates)
+                .Subscribe();
+
             InstallPackagesDialogInteraction = new Interaction<InstallDialogViewModel, Unit>();
-            InstallSelectedPackagesCommand = ReactiveCommand.CreateFromTask(DoOpenInstallDialog);
+            InstallSelectedPackagesCommand = ReactiveCommand.CreateFromTask(DoOpenInstallDialog, _installationCandidates.WhenAnyValue(x => x.Count).Select(c => c > 0));
         }
 
-        private async Task DoOpenAddPackageDialog(string packageId = "", string packageSourceString = "")
+        public async Task DoOpenAddPackageDialog(string packageId = "", string packageSourceString = "")
         {
             var dialog = new AddPackageViewModel(_database, _packageSourceRegistry, packageId, packageSourceString);
             var addPackageDialogReturn = await AddPackageDialogInteraction.Handle(dialog);
@@ -172,11 +178,11 @@ namespace MSFSModManager.GUI.ViewModels
             if (addPackageDialogReturn?.PackageSource != null)
             {
                 _observableDatabase.AddPackageSource(addPackageDialogReturn.PackageSource);
-                InstalledPackage package = _database.GetInstalledPackage(addPackageDialogReturn.PackageSource.PackageId);
-
+                
                 if (addPackageDialogReturn.MarkForInstallation)
                 {
-                    _installationCandidates.Add(package);
+                    PackageViewModel package = _observableDatabase.GetInstalledPackage(addPackageDialogReturn.PackageSource.PackageId);
+                    package.MarkedForInstall = true;
 
                     if (addPackageDialogReturn.InstallAfterAdding)
                         InstallSelectedPackagesCommand.Execute(null);
@@ -186,9 +192,14 @@ namespace MSFSModManager.GUI.ViewModels
 
         private async Task DoOpenInstallDialog()
         {
-            var dialog = new InstallDialogViewModel(_observableDatabase, _installationCandidates, GameVersion);
+            var dialog = new InstallDialogViewModel(_observableDatabase, _installationCandidates.Select(pvm => pvm.Package), GameVersion);
             await InstallPackagesDialogInteraction.Handle(dialog);
-            _installationCandidates.Clear();
+            
+            // clear selected for install
+            foreach (var pvm in _installationCandidates.ToList())
+            {
+                pvm.MarkedForInstall = false;
+            }
         }
 
         private async Task DoUninstallPackage(InstalledPackage package)
@@ -196,14 +207,14 @@ namespace MSFSModManager.GUI.ViewModels
             await Task.Run(() => _observableDatabase.Uninstall(package));
         }
 
-        private Func<InstalledPackage, bool> MakeFilter(string filterString, int filterTypeIndex, bool onlyWithSource, bool includeSystemPackages)
+        private Func<PackageViewModel, bool> MakeFilter(string filterString, int filterTypeIndex, bool onlyWithSource, bool includeSystemPackages)
         {
-            return p => 
-                    (includeSystemPackages || p.IsCommunityPackage) &&
-                    (string.IsNullOrWhiteSpace(filterString) || p.Id.Contains(filterString)) &&
+            return pvm => 
+                    (includeSystemPackages || pvm.Package.IsCommunityPackage) &&
+                    (string.IsNullOrWhiteSpace(filterString) || pvm.Package.Id.Contains(filterString)) &&
                     (filterTypeIndex == TYPE_FILTER_ALL_INDEX ||
-                     p.Type.ToLowerInvariant().Equals(PackageTypes[filterTypeIndex].ToLowerInvariant())) &&
-                    (!onlyWithSource || p.PackageSource != null);
+                     pvm.Package.Type.ToLowerInvariant().Equals(PackageTypes[filterTypeIndex].ToLowerInvariant())) &&
+                    (!onlyWithSource || pvm.Package.PackageSource != null);
         }
 
         public void ClearFilters()
