@@ -43,9 +43,8 @@ namespace MSFSModManager.Core.PackageSources.Github
             _repository = repository;
         }
 
-        public async Task<string> DownloadToFile(IProgressMonitor? monitor = null)
+        public async Task<string> DownloadToFile(IProgressMonitor? monitor = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-
             string archiveFilePath = Path.GetTempFileName();
 
             try
@@ -54,7 +53,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                 request.Headers.UserAgent.Add(GithubAPI.GetUserAgent());
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/octet-stream"));
                 request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
-                using (HttpResponseMessage response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                using (HttpResponseMessage response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken))
                 {
                     response.EnsureSuccessStatusCode();
 
@@ -76,7 +75,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                     using (var responseStream = await response.Content.ReadAsStreamAsync())
                     using (var fileStream = File.Create(archiveFilePath))
                     {
-                        await responseStream.CopyToAsync(fileStream, (IProgress<long>)downloadMonitor, CancellationToken.None);
+                        await responseStream.CopyToAsync(fileStream, (IProgress<long>)downloadMonitor, cancellationToken);
                     }
                     return archiveFilePath;
                 }
@@ -96,9 +95,9 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        public async Task<string> DownloadToCache(IProgressMonitor? monitor = null)
+        public async Task<string> DownloadToCache(IProgressMonitor? monitor = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            string archiveFilePath = await DownloadToFile(monitor);
+            string archiveFilePath = await DownloadToFile(monitor, cancellationToken);
             try
             {
                 string packageFolder = Cache.AddCacheEntry(CacheId, Version);

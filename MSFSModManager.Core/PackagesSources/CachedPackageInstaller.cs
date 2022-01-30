@@ -2,6 +2,7 @@
 // Copyright 2021 Lukas <lumip> Prediger
 
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MSFSModManager.Core.PackageSources
@@ -10,12 +11,13 @@ namespace MSFSModManager.Core.PackageSources
     public class CachedPackageInstaller : IPackageInstaller
     {
         private string _sourcePath;
-        public string PackageId { get; }
+        private PackageManifest _manifest;
+        public string PackageId => _manifest.Id;
 
-        public CachedPackageInstaller(string packageId, string sourcePath)
+        public CachedPackageInstaller(PackageManifest manifest, string sourcePath)
         {
             _sourcePath = sourcePath;
-            PackageId = packageId;
+            _manifest = manifest;
         }
 
         private static void CopyDirectory(string sourcePath, string destinationPath)
@@ -35,9 +37,12 @@ namespace MSFSModManager.Core.PackageSources
             }
         }
 
-        public async Task Install(string destination, IProgressMonitor? monitor)
+        public async Task<PackageManifest> Install(
+            string destination, IProgressMonitor? monitor, CancellationToken cancellationToken
+        )
         {
-            await Task.Run(() => CopyDirectory(_sourcePath, destination));
+            await Task.Run(() => CopyDirectory(_sourcePath, destination), cancellationToken);
+            return _manifest;
         }
     }
 

@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using Newtonsoft.Json;
@@ -144,7 +145,9 @@ namespace MSFSModManager.Core
             File.WriteAllText(packageSourceFilePath, PackageSourceRegistry.Serialize(packageSource).ToString(Formatting.Indented));
         }
 
-        public async Task InstallPackage(IPackageInstaller installer, IProgressMonitor? monitor = null)
+        public async Task InstallPackage(
+            IPackageInstaller installer, IProgressMonitor? monitor = null, CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
             string packagePath = Path.Join(COMMUNITY_PACKAGE_PATH, installer.PackageId);
             string fullPackagePath = Path.Join(_installationPath, packagePath);
@@ -162,7 +165,12 @@ namespace MSFSModManager.Core
             }
             try
             {
-                await installer.Install(fullPackagePath, monitor);
+                Debug.Assert(_packages[installer.PackageId].Manifest == null);
+
+                PackageManifest manifest = await installer.Install(fullPackagePath, monitor, cancellationToken);
+                Debug.Assert(manifest.Id == installer.PackageId);
+
+                _packages[installer.PackageId].Manifest = manifest;
                 GlobalLogger.Log(LogLevel.Info, $"Installation of {installer.PackageId} completed.");
             }
             catch (Exception e)

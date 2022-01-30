@@ -2,6 +2,7 @@
 // Copyright 2021 Lukas <lumip> Prediger
 
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 using MSFSModManager.Core.PackageSources;
@@ -22,7 +23,11 @@ namespace MSFSModManager.Core
         bool Contains(string packageId, VersionBounds versionBounds);
         InstalledPackage GetInstalledPackage(string packageId);
 
-        Task InstallPackage(IPackageInstaller installer, IProgressMonitor? monitor = null);
+        Task InstallPackage(
+            IPackageInstaller installer,
+            IProgressMonitor? monitor = null,
+            CancellationToken cancellationToken = default(CancellationToken)
+        );
         void Uninstall(string packageId);
 
         void AddPackageSource(string packageId, IPackageSource packageSource);

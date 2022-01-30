@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using MSFSModManager.Core.PackageSources;
 
@@ -63,13 +64,17 @@ namespace MSFSModManager.Core
             return _database.GetInstalledPackage(packageId);
         }
 
-        public Task InstallPackage(IPackageInstaller installer, IProgressMonitor? monitor = null)
+        public Task InstallPackage(
+            IPackageInstaller installer,
+            IProgressMonitor? monitor = null,
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
             if (installer.PackageId.StartsWith("fs-base"))
             {
                 throw new NotSupportedException("Cannot install fs-base packages.");
             }
-            return _database.InstallPackage(installer, monitor);
+            return _database.InstallPackage(installer, monitor, cancellationToken);
         }
 
         public void RemovePackageSource(string packageId)

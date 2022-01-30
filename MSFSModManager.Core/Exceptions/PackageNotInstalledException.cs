@@ -11,11 +11,12 @@ namespace MSFSModManager.Core
     {
         public string Id { get; }
 
-        public PackageNotInstalledException(string id, Exception baseException)
+        public PackageNotInstalledException(string id, Exception? baseException = null)
             : base($"The package {id} was not installed (no manifest exists).", baseException)
         {
             Id = id;
         }
+
     }
 
 }

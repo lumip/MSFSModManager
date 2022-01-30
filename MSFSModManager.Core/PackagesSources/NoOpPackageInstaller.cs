@@ -1,23 +1,25 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2021 Lukas <lumip> Prediger
 
-using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MSFSModManager.Core.PackageSources
 {
     class NoOpPackageInstaller : IPackageInstaller
     {
-        public string PackageId { get; }
+        private PackageManifest _manifest;
 
-        public NoOpPackageInstaller(string packageId)
+        public string PackageId => _manifest.Id;
+
+        public NoOpPackageInstaller(PackageManifest manifest)
         {
-            PackageId = packageId;
+            _manifest = manifest;
         }
 
-        public Task Install(string destination, IProgressMonitor? monitor)
+        public Task<PackageManifest> Install(string destination, IProgressMonitor? monitor, CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            return Task.FromResult(_manifest);
         }
 
     }

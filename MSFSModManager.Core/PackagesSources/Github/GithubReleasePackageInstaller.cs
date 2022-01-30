@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2021 Lukas <lumip> Prediger
 
+using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
 
@@ -25,7 +26,7 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         private PackageCache Cache => _downloader.Cache;
 
-        public async Task Install(string destination, IProgressMonitor? monitor)
+        public async Task<PackageManifest> Install(string destination, IProgressMonitor? monitor, CancellationToken cancellationToken)
         {
             string packageFolder;
 
@@ -35,12 +36,14 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
             else
             {
-                packageFolder = await _downloader.DownloadToCache(monitor);
+                packageFolder = await _downloader.DownloadToCache(monitor, cancellationToken);
             }
 
             string manifestFilePath = GithubReleasePackageSource.LocateManifest(packageFolder);
             string manifestFolderPath = Path.GetDirectoryName(manifestFilePath);
-            await new CachedPackageInstaller(PackageId, manifestFolderPath).Install(destination, monitor);
+
+            PackageManifest manifest = PackageManifest.FromFile(PackageId, manifestFilePath);
+            return await new CachedPackageInstaller(manifest, manifestFolderPath).Install(destination, monitor, cancellationToken);
         }
 
     }

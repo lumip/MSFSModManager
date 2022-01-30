@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2021 Lukas <lumip> Prediger
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MSFSModManager.Core.PackageSources
@@ -19,14 +20,17 @@ namespace MSFSModManager.Core.PackageSources
             _manifest = manifest;
         }
 
-        public async Task Install(string destination, IProgressMonitor? monitor)
+        public async Task<PackageManifest> Install(
+            string destination, IProgressMonitor? monitor, CancellationToken cancellationToken
+        )
         {
             monitor?.ExtractionStarted(PackageId, VersionNumber);
             using (ZipPackageArchive archive = new ZipPackageArchive(_pathToArchive))
             {
-                await Task.Run(() => archive.Extract(destination));
+                await Task.Run(() => archive.Extract(destination), cancellationToken);
             }
             monitor?.ExtractionCompleted(PackageId, VersionNumber);
+            return _manifest;
         }
     }
 
