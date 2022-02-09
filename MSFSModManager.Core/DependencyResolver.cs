@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Threading;
 
 using MSFSModManager.Core.PackageSources;
 
@@ -110,7 +111,8 @@ namespace MSFSModManager.Core
             IEnumerable<PackageDependency> installationCandidates, 
             IPackageSourceRepository packageSources,
             IVersionNumber gameVersion,
-            IProgressMonitor? monitor = null
+            IProgressMonitor? monitor = null,
+            CancellationToken cancellationToken = default(CancellationToken)
         )
         {
             Dictionary<string, DependencyNode> dependencyNodes = new Dictionary<string, DependencyNode>();
@@ -127,6 +129,7 @@ namespace MSFSModManager.Core
 
             while (resolverQueue.Count > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 DependencyNode node = resolverQueue.Dequeue();
                 if (node.IsActualized) continue; // package is already resolved, do not resolve again
 
@@ -140,7 +143,7 @@ namespace MSFSModManager.Core
                 try
                 {
                     PackageManifest manifest = await packageSources.GetSource(node.PackageId).GetPackageManifest(
-                        node.VersionBounds, gameVersion, monitor
+                        node.VersionBounds, gameVersion, monitor, cancellationToken
                     );
 
                     string parentsString = String.Join(", ", node.Parents.Select(p => $"{p.PackageId} {p.ActualizedVersion}"));
@@ -182,7 +185,7 @@ namespace MSFSModManager.Core
                         VersionBounds bounds = parent.ActualizedManifest.Dependencies.Where(d => d.Id == node.PackageId).First().VersionBounds;
                         try
                         {
-                            await packageSources.GetSource(node.PackageId).GetPackageManifest(node.VersionBounds, gameVersion, monitor);
+                            await packageSources.GetSource(node.PackageId).GetPackageManifest(node.VersionBounds, gameVersion, monitor, cancellationToken);
                         }
                         catch (VersionNotAvailableException)
                         {

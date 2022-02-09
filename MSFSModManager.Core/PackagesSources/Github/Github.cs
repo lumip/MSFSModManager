@@ -6,6 +6,7 @@ using System.Net;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Text;
 using Newtonsoft.Json;
@@ -121,12 +122,15 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        static public async Task<IEnumerable<string>> FetchReleaseNames(GithubRepository repository, HttpClient client)
+        static public async Task<IEnumerable<string>> FetchReleaseNames(
+            GithubRepository repository,
+            HttpClient client,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             List<string> tagNames = new List<string>();
 
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/releases";
-            string responseString = await MakeRequest(requestUrl, client);
+            string responseString = await MakeRequest(requestUrl, client, cancellationToken);
 
             try
             {
@@ -159,12 +163,16 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        static public async Task<IEnumerable<Release>> FetchReleases(GithubRepository repository, IGithubReleaseArtifactSelector artifactSelector, HttpClient client)
+        static public async Task<IEnumerable<Release>> FetchReleases(
+            GithubRepository repository,
+            IGithubReleaseArtifactSelector artifactSelector,
+            HttpClient client,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             List<Release> releases = new List<Release>();
 
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/releases";
-            string responseString = await MakeRequest(requestUrl, client);
+            string responseString = await MakeRequest(requestUrl, client, cancellationToken);
 
             try
             {
@@ -241,10 +249,14 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        public static async Task<IEnumerable<Commit>> GetBranchCommits(GithubRepository repository, string branch, HttpClient client)
+        public static async Task<IEnumerable<Commit>> GetBranchCommits(
+            GithubRepository repository,
+            string branch,
+            HttpClient client,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/commits?sha={branch}";
-            string responseString = await MakeRequest(requestUrl, client);
+            string responseString = await MakeRequest(requestUrl, client, cancellationToken);
 
             try
             {
@@ -256,10 +268,14 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        public static async Task<string> GetCommitShaForTag(GithubRepository repository, string tag, HttpClient client)
+        public static async Task<string> GetCommitShaForTag(
+            GithubRepository repository,
+            string tag,
+            HttpClient client,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/commits/{tag}";
-            string responseString = await MakeRequest(requestUrl, client);
+            string responseString = await MakeRequest(requestUrl, client, cancellationToken);
 
             try
             {
@@ -272,10 +288,14 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
-        public static async Task<string> GetManifestString(GithubRepository repository, string commitSha, HttpClient client)
+        public static async Task<string> GetManifestString(
+            GithubRepository repository,
+            string commitSha,
+            HttpClient client,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/git/trees/{commitSha}?recursive=1";
-            string responseString = await MakeRequest(requestUrl, client);
+            string responseString = await MakeRequest(requestUrl, client, cancellationToken);
 
             var manifestRegex = new Regex(@"manifest.*\.json");
 
@@ -291,7 +311,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                 if (manifestFiles.Length == 0) throw new FileNotFoundException("Manifest file not found in release commit.");
 
                 string manifestUrl = manifestFiles.First();
-                responseString = await MakeRequest(manifestUrl, client);
+                responseString = await MakeRequest(manifestUrl, client, cancellationToken);
 
                 JObject manifestObject = JObject.Parse(responseString);
                 string manifestRaw = Encoding.UTF8.GetString(

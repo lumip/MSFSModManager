@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using MSFSModManager.Core.PackageSources;
@@ -37,9 +38,11 @@ namespace MSFSModManager.Core
             return _sources.ContainsKey(packageId) || _baseRepository.HasSource(packageId);
         }
 
-        public async Task<IEnumerable<string>> ListAvailablePackages()
+        public async Task<IEnumerable<string>> ListAvailablePackages(
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
-            return _sources.Keys.Union(await _baseRepository.ListAvailablePackages());
+            return _sources.Keys.Union(await _baseRepository.ListAvailablePackages(cancellationToken));
         }
         
     }

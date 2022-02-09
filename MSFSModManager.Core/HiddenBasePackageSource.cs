@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
@@ -35,7 +36,11 @@ namespace MSFSModManager.Core
             throw new NotSupportedException("Installation of base packages not supported.");
         }
 
-        public override Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor)
+        public override Task<PackageManifest> GetPackageManifest(
+            VersionBounds versionBounds,
+            IVersionNumber gameVersion,
+            IProgressMonitor? monitor = null,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             VersionNumber? versionNumber = versionBounds.Lower as VersionNumber;
             if (versionNumber == null)
@@ -48,7 +53,9 @@ namespace MSFSModManager.Core
             return Task.FromResult(manifest);
         }
 
-        public override Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
+        public override Task<IEnumerable<IVersionNumber>> ListAvailableVersions(
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
             throw new NotSupportedException();
         }

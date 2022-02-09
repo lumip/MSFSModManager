@@ -5,6 +5,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
@@ -37,11 +38,13 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         private List<GithubAPI.Release>? _githubReleases;
 
-        private async Task<IEnumerable<GithubAPI.Release>> FetchGithubReleases()
+        private async Task<IEnumerable<GithubAPI.Release>> FetchGithubReleases(
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
             if (_githubReleases == null)
             {
-                _githubReleases = (await GithubAPI.FetchReleases(_repository, _artifactSelector, _client)).ToList();
+                _githubReleases = (await GithubAPI.FetchReleases(_repository, _artifactSelector, _client, cancellationToken)).ToList();
             }
             return _githubReleases;
         }
@@ -122,7 +125,11 @@ namespace MSFSModManager.Core.PackageSources.Github
             throw new FileNotFoundException();
         }
 
-        public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor)
+        public override async Task<PackageManifest> GetPackageManifest(
+            VersionBounds versionBounds,
+            IVersionNumber gameVersion,
+            IProgressMonitor? monitor = null,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             foreach (VersionNumber cachedVersion in _releaseCache.Keys)
             {
@@ -133,7 +140,7 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
 
             monitor?.RequestPending(PackageId);
-            IEnumerable<GithubAPI.Release> releases = await FetchGithubReleases();
+            IEnumerable<GithubAPI.Release> releases = await FetchGithubReleases(cancellationToken);
             foreach (GithubAPI.Release release in releases)
             {
                 VersionNumber releaseVersion;
@@ -150,10 +157,10 @@ namespace MSFSModManager.Core.PackageSources.Github
                 if (versionBounds.CheckVersion(releaseVersion))
                 {
 
-                    string commitSha = await GithubAPI.GetCommitShaForTag(_repository, release.Name, _client);
+                    string commitSha = await GithubAPI.GetCommitShaForTag(_repository, release.Name, _client, cancellationToken);
                     try
                     {
-                        string rawManifest = await GithubAPI.GetManifestString(_repository, commitSha, _client);
+                        string rawManifest = await GithubAPI.GetManifestString(_repository, commitSha, _client, cancellationToken);
                         PackageManifest manifest = PackageManifest.Parse(PackageId, rawManifest, releaseVersion);
 
                         if (gameVersion.CompareTo(manifest.MinimumGameVersion) < 0)
@@ -176,7 +183,7 @@ namespace MSFSModManager.Core.PackageSources.Github
                         else
                         {
                             var downloader = new GithubArtifactDownloader(PackageId, releaseVersion, _repository, release.DownloadUrl, _client, _cache);
-                            packageFolder = await downloader.DownloadToCache(monitor);
+                            packageFolder = await downloader.DownloadToCache(monitor, cancellationToken);
                         }
                         string manifestFilePath = LocateManifest(packageFolder);
                         PackageManifest manifest = PackageManifest.FromFile(PackageId, manifestFilePath);
@@ -238,9 +245,10 @@ namespace MSFSModManager.Core.PackageSources.Github
             return sourceString;
         }
 
-        public override async Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
+        public override async Task<IEnumerable<IVersionNumber>> ListAvailableVersions(
+            CancellationToken cancellationToken = default(CancellationToken))
         {
-            return (await FetchGithubReleases()).Select(r => VersionNumber.FromString(r.Name));
+            return (await FetchGithubReleases(cancellationToken)).Select(r => VersionNumber.FromString(r.Name));
         }
 
     }

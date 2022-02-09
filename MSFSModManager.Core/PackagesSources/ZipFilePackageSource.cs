@@ -4,6 +4,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Linq;
@@ -40,7 +41,10 @@ namespace MSFSModManager.Core.PackageSources
         }
 
         public override Task<PackageManifest> GetPackageManifest(
-            VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor)
+            VersionBounds versionBounds,
+            IVersionNumber gameVersion,
+            IProgressMonitor? monitor = null,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             IVersionNumber packageVersion = _manifest.SourceVersion;
             if (!versionBounds.CheckVersion(packageVersion))
@@ -49,7 +53,9 @@ namespace MSFSModManager.Core.PackageSources
             return Task.FromResult(_manifest);
         }
 
-        public override Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
+        public override Task<IEnumerable<IVersionNumber>> ListAvailableVersions(
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
             IVersionNumber[] versions = new VersionNumber[] { _manifest.Version };
             return Task.FromResult(versions.AsEnumerable());

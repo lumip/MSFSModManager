@@ -2,6 +2,7 @@
 // Copyright 2021 Lukas <lumip> Prediger
 
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace MSFSModManager.Core.PackageSources
@@ -12,7 +13,7 @@ namespace MSFSModManager.Core.PackageSources
     /// </summary>
     public interface IPackageSourceRepository
     {
-        Task<IEnumerable<string>> ListAvailablePackages();
+        Task<IEnumerable<string>> ListAvailablePackages(CancellationToken cancellationToken = default(CancellationToken));
 
         IPackageSource GetSource(string packageId);
 

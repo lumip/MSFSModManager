@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using System.Linq;
@@ -19,7 +20,7 @@ namespace MSFSModManager.Core.PackageSources
             _database = database;
         }
 
-        public Task<IEnumerable<string>> ListAvailablePackages()
+        public Task<IEnumerable<string>> ListAvailablePackages(CancellationToken cancellationToken = default(CancellationToken))
         {
             return Task.FromResult(
                 _database.CommunityPackages.Where(p => p.PackageSource != null).Select(p => p.Id)

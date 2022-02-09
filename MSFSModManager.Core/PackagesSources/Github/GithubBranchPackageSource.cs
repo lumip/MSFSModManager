@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Net.Http;
 using System.Linq;
@@ -34,11 +35,13 @@ namespace MSFSModManager.Core.PackageSources.Github
 
         private List<GithubAPI.Commit>? _branchCommits;
 
-        private async Task<IEnumerable<GithubAPI.Commit>> FetchCommits()
+        private async Task<IEnumerable<GithubAPI.Commit>> FetchCommits(
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
             if (_branchCommits == null)
             {
-                _branchCommits = (await GithubAPI.GetBranchCommits(_repository, _branch, _client)).ToList();
+                _branchCommits = (await GithubAPI.GetBranchCommits(_repository, _branch, _client, cancellationToken)).ToList();
             }
             return _branchCommits;
         }
@@ -59,16 +62,20 @@ namespace MSFSModManager.Core.PackageSources.Github
             return new GithubReleasePackageInstaller(downloader);
         }
 
-        public override async Task<PackageManifest> GetPackageManifest(VersionBounds versionBounds, IVersionNumber gameVersion, IProgressMonitor? monitor = null)
+        public override async Task<PackageManifest> GetPackageManifest(
+            VersionBounds versionBounds,
+            IVersionNumber gameVersion,
+            IProgressMonitor? monitor = null,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             monitor?.RequestPending(PackageId);
-            foreach (var commit in await FetchCommits())
+            foreach (var commit in await FetchCommits(cancellationToken))
             {
                 GitCommitVersionNumber version = new GitCommitVersionNumber(commit.Sha, commit.Date);
                 if (!versionBounds.CheckVersion(version))
                     continue;
 
-                string rawManifest = await GithubAPI.GetManifestString(_repository, commit.Sha, _client);
+                string rawManifest = await GithubAPI.GetManifestString(_repository, commit.Sha, _client, cancellationToken);
                 PackageManifest manifest;
                 try
                 {
@@ -100,9 +107,11 @@ namespace MSFSModManager.Core.PackageSources.Github
             return $"https://github.com/{_repository.Organisation}/{_repository.Name}@{_branch}";
         }
 
-        public override async Task<IEnumerable<IVersionNumber>> ListAvailableVersions()
+        public override async Task<IEnumerable<IVersionNumber>> ListAvailableVersions(
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
-            return (await FetchCommits()).Select(c => new GitCommitVersionNumber(c.Sha, c.Date));
+            return (await FetchCommits(cancellationToken)).Select(c => new GitCommitVersionNumber(c.Sha, c.Date));
         }
 
         public override JToken Serialize()
