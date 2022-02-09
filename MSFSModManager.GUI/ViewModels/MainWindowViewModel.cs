@@ -15,6 +15,7 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Threading.Tasks;
 using DynamicData;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MSFSModManager.GUI.ViewModels
 {
@@ -99,7 +100,7 @@ namespace MSFSModManager.GUI.ViewModels
 
         public ICommand InstallSelectedPackagesCommand { get; }
 
-        public Interaction<InstallDialogViewModel, Unit> InstallPackagesDialogInteraction { get; }
+        public Interaction<InstallDialogViewModel, IEnumerable<string>> InstallPackagesDialogInteraction { get; }
 #endregion
 
 
@@ -166,7 +167,7 @@ namespace MSFSModManager.GUI.ViewModels
                 .Bind(out _installationCandidates)
                 .Subscribe();
 
-            InstallPackagesDialogInteraction = new Interaction<InstallDialogViewModel, Unit>();
+            InstallPackagesDialogInteraction = new Interaction<InstallDialogViewModel, IEnumerable<string>>();
             InstallSelectedPackagesCommand = ReactiveCommand.CreateFromTask(
                 DoOpenInstallDialog,
                 _installationCandidates.WhenAnyValue(x => x.Count).Select(c => c > 0)
@@ -196,10 +197,10 @@ namespace MSFSModManager.GUI.ViewModels
         private async Task DoOpenInstallDialog()
         {
             var dialog = new InstallDialogViewModel(_observableDatabase, _installationCandidates.Select(pvm => pvm.Package), GameVersion);
-            await InstallPackagesDialogInteraction.Handle(dialog);
-            
-            // clear selected for install
-            foreach (var pvm in _installationCandidates.ToList())
+            var installedPackages = await InstallPackagesDialogInteraction.Handle(dialog);
+
+            // clear all successfully installed packages from the installation candidates
+            foreach (var pvm in _installationCandidates.ToArray().Join(installedPackages, pvm => pvm.Id, id => id, (pvm, _) => pvm))
             {
                 pvm.MarkedForInstall = false;
             }

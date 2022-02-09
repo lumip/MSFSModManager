@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright 2021-2022 Lukas <lumip> Prediger
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -43,7 +46,7 @@ namespace MSFSModManager.GUI.ViewModels
         private DependencyResolutionPageViewModel _dependencyResolutionView;
 
         public ReactiveCommand<Unit, Unit> InstallCommand { get; }
-        public ReactiveCommand<Unit, Unit> CloseCommand { get; }
+        public ReactiveCommand<Unit, IEnumerable<string>> CloseCommand { get; }
 
         public ReactiveCommand<Unit, Unit> CancelCommand { get; }
 
@@ -54,14 +57,11 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _installationProgressList, value);
         }
 
-        private IVersionNumber _gameVersion;
-
         private CancellationTokenSource _cancellationTokenSource;
 
         public InstallDialogViewModel(ObservableDatabase database, IEnumerable<InstalledPackage> installationCandidates, IVersionNumber gameVersion)
         {
             _database = database;
-            _gameVersion = gameVersion;
             _installationCandidates = installationCandidates;
             _alreadyInstalledPackages = new ObservableCollection<InstallationCandidateViewModel>();
             _toInstallPackages = null;
@@ -73,15 +73,26 @@ namespace MSFSModManager.GUI.ViewModels
             InstallCommand = ReactiveCommand.CreateFromTask(DoInstall);
 
             CancelCommand = ReactiveCommand.Create(() => _cancellationTokenSource.Cancel());
-            CloseCommand = ReactiveCommand.Create(() => Unit.Default);
+            CloseCommand = ReactiveCommand.Create(() => {
+                if (_installationProgressList != null)
+                {
+                    return _installationProgressList.InstallingPackages
+                                .Where(ipvm => ipvm.State == InstallationState.Success)
+                                .Select(ipvm => ipvm.Id);
+                }
+                return Enumerable.Empty<string>();
+            });
 
             _dependencyResolutionView = new DependencyResolutionPageViewModel();
             _content = _dependencyResolutionView;
 
-            Observable.FromAsync(() => DoResolveDependencies(_cancellationTokenSource.Token)).ObserveOn(RxApp.MainThreadScheduler).Subscribe();
+            Observable
+                .FromAsync(() => DoResolveDependencies(gameVersion, _cancellationTokenSource.Token))
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Subscribe();
         }
 
-        public async Task DoResolveDependencies(CancellationToken ct)
+        public async Task DoResolveDependencies(IVersionNumber gameVersion, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             // Add decorators for hidden "fs-base" packages that are not captured by PackageDatabase
@@ -101,7 +112,7 @@ namespace MSFSModManager.GUI.ViewModels
                 candidatesAndDependencies = (await DependencyResolver.ResolveDependencies(
                         InstallationCandidates,
                         sourceRepository,
-                        _gameVersion,
+                        gameVersion,
                         monitor,
                         ct)
                     );
@@ -188,7 +199,9 @@ namespace MSFSModManager.GUI.ViewModels
                 GlobalLogger.Log(LogLevel.Error, $"Error while installing package: {e.Message}");
             }
 
-            // todo: need to clean/update GUI state!
+            var successfullyInstalled = InstallationProgressList!.InstallingPackages.Where(ipvm => ipvm.State == InstallationState.Success);
+            var failedInstallations = InstallationProgressList!.InstallingPackages.Where(ipvm => ipvm.State == InstallationState.Faulted);
+            Content = new InstallCompletedPageViewModel(successfullyInstalled, failedInstallations);
         }
     }
 }

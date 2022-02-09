@@ -23,7 +23,7 @@ namespace MSFSModManager.GUI.Views
 #if DEBUG
             this.AttachDevTools();
 #endif
-            this.WhenActivated(d => d(ViewModel!.CloseCommand.Subscribe(_ => Close())));
+            this.WhenActivated(d => d(ViewModel!.CloseCommand.Subscribe(Close)));
         }
 
         protected override void OnClosing(CancelEventArgs e)

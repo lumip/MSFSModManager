@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021-2022 Lukas <lumip> Prediger
 
 using System;
 using System.Threading.Tasks;
@@ -9,9 +9,9 @@ using Avalonia.Markup.Xaml;
 using ReactiveUI;
 
 using MSFSModManager.GUI.ViewModels;
-using MSFSModManager.Core.PackageSources;
 using Avalonia.ReactiveUI;
 using System.Reactive;
+using System.Collections.Generic;
 
 namespace MSFSModManager.GUI.Views
 {
@@ -43,12 +43,12 @@ namespace MSFSModManager.GUI.Views
             interaction.SetOutput(result);
         }
 
-        private async Task ShowInstallDialogAsync(InteractionContext<InstallDialogViewModel, Unit> interaction)
+        private async Task ShowInstallDialogAsync(InteractionContext<InstallDialogViewModel, IEnumerable<string>> interaction)
         {
             var dialog = new InstallDialogView();
             dialog.DataContext = interaction.Input;
 
-            var result = await dialog.ShowDialog<Unit>(this);
+            var result = await dialog.ShowDialog<IEnumerable<string>>(this);
             interaction.SetOutput(result);
         }
     }
