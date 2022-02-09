@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright 2021-2022 Lukas <lumip> Prediger
+
 using Avalonia;
 using ReactiveUI;
 using System.Threading.Tasks;
@@ -6,7 +9,6 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using DynamicData;
-using System.Diagnostics;
 
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;

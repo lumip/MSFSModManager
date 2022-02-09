@@ -1,8 +1,6 @@
-using System;
-using System.Reactive.Linq;
-using System.Linq;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright 2021-2022 Lukas <lumip> Prediger
+
 using System.Diagnostics;
 
 using ReactiveUI;

@@ -1,6 +1,7 @@
-using System;
-using ReactiveUI;
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright 2021-2022 Lukas <lumip> Prediger
 
+using ReactiveUI;
 
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;
