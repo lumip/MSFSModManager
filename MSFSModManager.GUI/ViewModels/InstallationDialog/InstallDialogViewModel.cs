@@ -66,9 +66,6 @@ namespace MSFSModManager.GUI.ViewModels
             _alreadyInstalledPackages = new ObservableCollection<InstallationCandidateViewModel>();
             _toInstallPackages = null;
 
-            _dependencyResolutionView = new DependencyResolutionPageViewModel();
-            _content = _dependencyResolutionView;
-
             _installationProgressList = null;
             _cancellationTokenSource = new CancellationTokenSource();
 
@@ -76,14 +73,17 @@ namespace MSFSModManager.GUI.ViewModels
             InstallCommand = ReactiveCommand.CreateFromTask(DoInstall);
 
             CancelCommand = ReactiveCommand.Create(() => _cancellationTokenSource.Cancel());
-
             CloseCommand = ReactiveCommand.Create(() => Unit.Default);
 
-            Task.Run(DoResolveDependencies, _cancellationTokenSource.Token);
+            _dependencyResolutionView = new DependencyResolutionPageViewModel();
+            _content = _dependencyResolutionView;
+
+            Observable.FromAsync(() => DoResolveDependencies(_cancellationTokenSource.Token)).ObserveOn(RxApp.MainThreadScheduler).Subscribe();
         }
 
-        public async Task DoResolveDependencies()
+        public async Task DoResolveDependencies(CancellationToken ct)
         {
+            ct.ThrowIfCancellationRequested();
             // Add decorators for hidden "fs-base" packages that are not captured by PackageDatabase
             IPackageDatabase decoratedDatabase = new HiddenBasePackagesDatabase(_database.Database);
             IPackageSourceRepository sourceRepository = new HiddenBasePackageSourceRepositoryDecorator(
@@ -102,7 +102,8 @@ namespace MSFSModManager.GUI.ViewModels
                         InstallationCandidates,
                         sourceRepository,
                         _gameVersion,
-                        monitor)
+                        monitor,
+                        ct)
                     );
                 GlobalLogger.Log(LogLevel.Info, "Dependency resolution complete.");
             }
@@ -122,7 +123,21 @@ namespace MSFSModManager.GUI.ViewModels
                     GlobalLogger.Log(LogLevel.CriticalError, $"Could not resolve dependencies: Unknown error.");
                 }
                 GlobalLogger.Log(LogLevel.CriticalError, $"{innerException}");
-                // todo: need to clean GUI state!
+                return;
+            }
+            catch (TaskCanceledException)
+            {
+                GlobalLogger.Log(LogLevel.Info, "Cancelled...");
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                GlobalLogger.Log(LogLevel.Info, "Cancelled...");
+                return;
+            }
+            catch (Exception e)
+            {
+                GlobalLogger.Log(LogLevel.Error, $"Unexpected error {e}");
                 return;
             }
 
@@ -131,6 +146,8 @@ namespace MSFSModManager.GUI.ViewModels
                     .Where(m => decoratedDatabase.Contains(m.Id, new VersionBounds(m.Version)))
                     .Select(m => new InstallationCandidateViewModel(m.Id, m.Version.ToString()))
             );
+
+            ct.ThrowIfCancellationRequested();
 
             _toInstallPackages = candidatesAndDependencies.Where(m => !decoratedDatabase.Contains(m.Id, new VersionBounds(m.Version)));
 

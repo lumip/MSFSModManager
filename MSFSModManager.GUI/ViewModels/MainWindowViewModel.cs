@@ -167,7 +167,10 @@ namespace MSFSModManager.GUI.ViewModels
                 .Subscribe();
 
             InstallPackagesDialogInteraction = new Interaction<InstallDialogViewModel, Unit>();
-            InstallSelectedPackagesCommand = ReactiveCommand.CreateFromTask(DoOpenInstallDialog, _installationCandidates.WhenAnyValue(x => x.Count).Select(c => c > 0));
+            InstallSelectedPackagesCommand = ReactiveCommand.CreateFromTask(
+                DoOpenInstallDialog,
+                _installationCandidates.WhenAnyValue(x => x.Count).Select(c => c > 0)
+            );
         }
 
         public async Task DoOpenAddPackageDialog(string packageId = "", string packageSourceString = "")

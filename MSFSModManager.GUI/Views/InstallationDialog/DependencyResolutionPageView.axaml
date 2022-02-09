@@ -4,25 +4,33 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:views="using:MSFSModManager.GUI.Views"
              x:Class="MSFSModManager.GUI.Views.DependencyResolutionPageView">
-    <StackPanel Margin="4">
-        <TextBlock HorizontalAlignment="Center">Packages selected for installation:</TextBlock>
-        <Grid>
-            <DataGrid 
-                    Items="{Binding $parent[Window].DataContext.InstallationCandidates}"
-                    HeadersVisibility="None"
-                    AutoGenerateColumns="False"
-                    CanUserResizeColumns="False"
-                    CanUserSortColumns="False">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
-                    <DataGridTextColumn Width="Auto" Header="Version Bounds" Binding="{Binding VersionBounds}" />
-                </DataGrid.Columns>
-            </DataGrid>
-        </Grid>
+    <DockPanel Margin="4">
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock HorizontalAlignment="Center">Packages selected for installation:</TextBlock>
+            <Grid>
+                <DataGrid 
+                        Items="{Binding $parent[Window].DataContext.InstallationCandidates}"
+                        HeadersVisibility="None"
+                        AutoGenerateColumns="False"
+                        CanUserResizeColumns="False"
+                        CanUserSortColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
+                        <DataGridTextColumn Width="Auto" Header="Version Bounds" Binding="{Binding VersionBounds}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </StackPanel>
+        <Button
+            DockPanel.Dock="Bottom"
+            Command="{Binding $parent[Window].DataContext.CloseCommand}"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Center"
+            Content="Cancel" />
         <StackPanel>
             <TextBlock HorizontalAlignment="Center">Resolving dependencies...</TextBlock>
             <TextBlock HorizontalAlignment="Center" Text="{Binding StatusLabel}" />
             <ProgressBar IsIndeterminate="True" />
         </StackPanel>
-    </StackPanel>
+    </DockPanel>
 </UserControl>
