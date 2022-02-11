@@ -38,7 +38,11 @@ namespace MSFSModManager.GUI.ViewModels
 
         public IReactiveCommand GetRemovePackageSourceCommand(InstalledPackage package)
         {
-            return ReactiveCommand.Create(() =>  _mainViewModel.RemovePackageSourceCommand.Execute(package));            
+            // note(lumip): RemovePackageSourceCommand was created with ReactiveCommand.Create, therefore needs to be subscribed
+            //      (which we do by awaiting it), as opposed to the other commands, which were created using
+            //      ReactiveCommand.CreateFromTask (why?? how is this allowed to make a difference here?)
+            //      This is tricky because the failure mode is that the command simply does not execute (no error/exception happens)
+            return ReactiveCommand.Create(async () => await _mainViewModel.RemovePackageSourceCommand.Execute(package));
         }
 
         public IReactiveCommand GetUninstallPackageCommand(InstalledPackage package)
