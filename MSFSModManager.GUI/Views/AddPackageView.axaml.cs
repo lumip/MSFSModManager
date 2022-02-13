@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021,2022 Lukas <lumip> Prediger
 
 using Avalonia;
 using Avalonia.Controls;
@@ -14,7 +14,7 @@ using MSFSModManager.GUI.ViewModels;
 
 namespace MSFSModManager.GUI.Views
 {
-    public partial class AddPackageView : ReactiveWindow<AddPackageViewModel>
+    partial class AddPackageView : ReactiveWindow<AddPackageViewModel>
     {
         public AddPackageView()
         {

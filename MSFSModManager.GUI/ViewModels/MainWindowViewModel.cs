@@ -1,5 +1,5 @@
 ﻿// SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021,2022 Lukas <lumip> Prediger
 
 using System;
 using System.Collections.Generic;
@@ -15,6 +15,7 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using System.Threading.Tasks;
 using DynamicData;
+using DynamicData.Binding;
 using System.Diagnostics.CodeAnalysis;
 
 namespace MSFSModManager.GUI.ViewModels
@@ -22,11 +23,9 @@ namespace MSFSModManager.GUI.ViewModels
 
     class MainWindowViewModel : ViewModelBase
     {
-
-        private PackageDatabase _database;
         private ObservableDatabase _observableDatabase;
         
-        private IPackageSourceRegistry _packageSourceRegistry;
+        public IPackageSourceRegistry PackageSourceRegistry { get; private set; }
 
         private PackageVersionCache _latestVersionCache;
 
@@ -59,7 +58,8 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _filterString, value);
         }
 
-        public List<string> PackageTypes { get; }
+        // public List<string> PackageTypes { get; }
+        // public ReadOnlyCollection<string> PackageTypes { get; }
         private int _typeFilterIndex;
         public int TypeFilterIndex
         {
@@ -69,6 +69,13 @@ namespace MSFSModManager.GUI.ViewModels
         
         public const string TYPE_FILTER_ALL_STRING = "ALL";
         public const int TYPE_FILTER_ALL_INDEX = 0;
+
+        private IDisposable _packageTypesCachePipeline;
+        private SourceList<string> _packageTypesCache;
+        private IDisposable _packageTypesPipeline;
+        private ReadOnlyObservableCollection<string> _packageTypes;
+        public ReadOnlyObservableCollection<string> PackageTypes => _packageTypes;
+
         
         private PackageViewModel? _selectedPackage;
         public PackageViewModel? SelectedPackage
@@ -77,7 +84,12 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _selectedPackage, value);
         }
 
-        private string ContentPath { get; }
+        private string _contentPath;
+        public string ContentPath
+        {
+            get => _contentPath;
+            set => this.RaiseAndSetIfChanged(ref _contentPath, value);
+        }
         
 #endregion
 
@@ -105,48 +117,62 @@ namespace MSFSModManager.GUI.ViewModels
 
 
         public MainWindowViewModel(
-            PackageDatabase database, PackageSourceRegistry packageSourceRegistry, IVersionNumber gameVersion, LogViewModel log, string contentPath)
+            PackageSourceRegistry packageSourceRegistry, IVersionNumber gameVersion, LogViewModel log, string contentPath)
         {
+            _contentPath = contentPath;
             _latestVersionCache = new PackageVersionCache();
             VersionFetchingProgress = new AvailableVersionFetchingProgressViewModel();
-
-
-            _observableDatabase = new ObservableDatabase(
-                database,
-                new PackageCommandFactory(this),
-                _latestVersionCache,
-                VersionFetchingProgress
-            );
-            
-            _packageSourceRegistry = packageSourceRegistry;
-            
-
-            GameVersion = gameVersion;
-            ContentPath = contentPath;
-
-            _database = database;
-            Log = log;
-
-            _filterString = string.Empty;
-
-            var typesInDatabase = _database.Packages.Select(p => p.Type).ToHashSet();
-            var types = new List<string>();
-            types.Add(TYPE_FILTER_ALL_STRING);
-            types.AddRange(typesInDatabase);
-            PackageTypes = types;
-
 
             AddPackageDialogInteraction = new Interaction<AddPackageViewModel, AddPackageDialogReturnValues>();
 
             OpenAddPackageDialogCommand = ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog());
             RemovePackageSourceCommand = ReactiveCommand.Create<InstalledPackage, Unit>(p => {
-                _observableDatabase.RemoveSource(p);
+                DoRemovePackageSource(p);
                 return Unit.Default;
             });
             UninstallPackageCommand = ReactiveCommand.CreateFromTask<InstalledPackage, Unit>(async p => {
                 await DoUninstallPackage(p);
                 return Unit.Default;
             });
+
+            PackageSourceRegistry = packageSourceRegistry;
+            
+            _observableDatabase = new ObservableDatabase(
+                new PackageDatabase(contentPath, PackageSourceRegistry),
+                new PackageCommandFactory(this),
+                _latestVersionCache,
+                VersionFetchingProgress    
+            );
+
+            this.WhenAnyValue(x => x.ContentPath).Subscribe(
+                cp => { _observableDatabase.Database = new PackageDatabase(cp, PackageSourceRegistry); });
+
+            GameVersion = gameVersion;
+
+            Log = log;
+
+            _filterString = string.Empty;
+            _typeFilterIndex = TYPE_FILTER_ALL_INDEX;
+            
+
+            _packageTypesCache = new SourceList<string>();
+            _packageTypesCache.Insert(TYPE_FILTER_ALL_INDEX, TYPE_FILTER_ALL_STRING);
+
+            _packageTypesCachePipeline = _observableDatabase.Connect()
+                .DistinctValues(pvm => pvm.Type)
+                .Sort(SortExpressionComparer<string>.Ascending(k => k))
+                .Subscribe(types => {
+                    _packageTypesCache.Clear();
+                    _packageTypesCache.Insert(TYPE_FILTER_ALL_INDEX, TYPE_FILTER_ALL_STRING);
+
+                    _packageTypesCache.AddRange(types.SortedItems.Select(pair => pair.Value));
+                });
+
+            _packageTypesPipeline = _packageTypesCache.Connect()
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .Bind(out _packageTypes)
+                .ToCollection()
+                .Subscribe();
 
             IncludeSystemPackages = false;
             OnlyWithSource = false;
@@ -176,7 +202,7 @@ namespace MSFSModManager.GUI.ViewModels
 
         public async Task DoOpenAddPackageDialog(string packageId = "", string packageSourceString = "")
         {
-            var dialog = new AddPackageViewModel(_database, _packageSourceRegistry, packageId, packageSourceString);
+            var dialog = new AddPackageViewModel(_observableDatabase, PackageSourceRegistry, packageId, packageSourceString);
             var addPackageDialogReturn = await AddPackageDialogInteraction.Handle(dialog);
 
             if (addPackageDialogReturn?.PackageSource != null)
@@ -192,6 +218,11 @@ namespace MSFSModManager.GUI.ViewModels
                         InstallSelectedPackagesCommand.Execute(null);
                 }
             }
+        }
+
+        public void DoRemovePackageSource(InstalledPackage package)
+        {
+            _observableDatabase.RemoveSource(package);
         }
 
         private async Task DoOpenInstallDialog()
@@ -216,7 +247,7 @@ namespace MSFSModManager.GUI.ViewModels
             return pvm => 
                     (includeSystemPackages || pvm.Package.IsCommunityPackage) &&
                     (string.IsNullOrWhiteSpace(filterString) || pvm.Package.Id.Contains(filterString)) &&
-                    (filterTypeIndex == TYPE_FILTER_ALL_INDEX ||
+                    (filterTypeIndex == TYPE_FILTER_ALL_INDEX || filterTypeIndex == -1 ||
                      pvm.Package.Type.ToLowerInvariant().Equals(PackageTypes[filterTypeIndex].ToLowerInvariant())) &&
                     (!onlyWithSource || pvm.Package.PackageSource != null);
         }

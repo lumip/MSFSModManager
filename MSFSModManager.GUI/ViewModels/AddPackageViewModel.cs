@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021,2022 Lukas <lumip> Prediger
 
 using System;
 using System.Collections.Generic;
@@ -16,7 +16,7 @@ using Avalonia.Media;
 namespace MSFSModManager.GUI.ViewModels
 {
 
-    public class AddPackageDialogReturnValues
+    class AddPackageDialogReturnValues
     {
         public IPackageSource? PackageSource;
         public bool MarkForInstallation;
@@ -30,7 +30,7 @@ namespace MSFSModManager.GUI.ViewModels
         }
     }
 
-    public class AddPackageViewModel : ViewModelBase
+    class AddPackageViewModel : ViewModelBase
     {
 
 
@@ -87,7 +87,7 @@ namespace MSFSModManager.GUI.ViewModels
 
 #endregion
 
-        public AddPackageViewModel(PackageDatabase database, IPackageSourceRegistry packageSourceRegistry, string packageId = "", string packageSourceString = "")
+        public AddPackageViewModel(ObservableDatabase database, IPackageSourceRegistry packageSourceRegistry, string packageId = "", string packageSourceString = "")
         {
             _packageSourceRegistry = packageSourceRegistry;
             _packageSourceString = packageSourceString;

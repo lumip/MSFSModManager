@@ -28,24 +28,26 @@ namespace MSFSModManager.GUI
             LogViewModel logger = new LogViewModel();
             GlobalLogger.Instance = logger; 
             
-            var settingsBuilder = UserSettingsBuilder.LoadFromConfigFile();
-            if (!settingsBuilder.IsComplete)
-            {
-                // todo: WIP currently this just opens the dialog and then quits the application without storing the new settings
-                if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop_)
-                {
-                    desktop_.MainWindow = new SettingsView
-                    {
-                        DataContext = new SettingsViewModel(settingsBuilder)
-                    };
+            // var settingsBuilder = UserSettingsBuilder.LoadFromConfigFile();
+            // if (!settingsBuilder.IsComplete)
+            // {
+            //     // todo: WIP currently this just opens the dialog and then quits the application without storing the new settings
+            //     if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop_)
+            //     {
+            //         desktop_.MainWindow = new SettingsView
+            //         {
+            //             DataContext = new SettingsViewModel(settingsBuilder)
+            //         };
 
-                    base.OnFrameworkInitializationCompleted();
+            //         base.OnFrameworkInitializationCompleted();
 
-                    return;
-                }
-            }
-            var settings = settingsBuilder.Build();
-            Console.WriteLine(settings.ContentPath);
+            //         return;
+            //     }
+            // }
+            // var settings = settingsBuilder.Build();
+            // var contentPath = settings.ContentPath;
+
+            var contentPath = "/media/data/MSFSData/Manifests/";
             
             IVersionNumber gameVersion = VersionNumber.Infinite;
             try
@@ -62,14 +64,15 @@ namespace MSFSModManager.GUI
             HttpClient client = new HttpClient();
             PackageCache cache = new PackageCache(Path.Join(Path.GetTempPath(), "msfsmodmanager_cache"));
             PackageSourceRegistry sourceRegistry = new PackageSourceRegistry(cache, client);
-            PackageDatabase database = new PackageDatabase(settings.ContentPath, sourceRegistry);
+            PackageDatabase database = new PackageDatabase(contentPath, sourceRegistry);
 
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel(database, sourceRegistry, gameVersion, logger, settings.ContentPath),
+                    DataContext = new MainWindowViewModel(sourceRegistry, gameVersion, logger, contentPath),
                 };
+
             }
 
             base.OnFrameworkInitializationCompleted();

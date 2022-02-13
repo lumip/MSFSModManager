@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021,2022 Lukas <lumip> Prediger
 
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Linq;
 using ReactiveUI;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Reactive;
 
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;
@@ -55,7 +52,19 @@ namespace MSFSModManager.GUI.ViewModels
     {
 
         private IPackageDatabase _database;
-        public IPackageDatabase Database => _database;
+        public IPackageDatabase Database
+        {
+            get => _database;
+            set
+            {
+                this.RaisePropertyChanging(nameof(Database));
+                _database = value;
+                Packages.Clear();
+                Packages.AddOrUpdate(_database.Packages.Select(CreateViewModel));
+                
+                this.RaisePropertyChanged(nameof(Database));
+            }
+        }
 
         public SourceCache<PackageViewModel, string> Packages { get; }
         public IObservable<IChangeSet<PackageViewModel, string>> Connect() => Packages.Connect();
@@ -71,16 +80,12 @@ namespace MSFSModManager.GUI.ViewModels
             PackageVersionCache versionCache,
             AvailableVersionFetchingProgressViewModel versionFetchingProgressViewModel)
         {
-            _database = database;
-
             _packageCommandFactory = packageCommandFactory;
             _versionCache = versionCache;
             _versionFetchingProgressViewModel = versionFetchingProgressViewModel;
 
             Packages = new SourceCache<PackageViewModel, string>(p => p.Id);
-            Packages.AddOrUpdate(
-                _database.Packages.Select(CreateViewModel)
-            );
+            _database = database;
         }
 
         private PackageViewModel CreateViewModel(InstalledPackage package)
@@ -159,6 +164,11 @@ namespace MSFSModManager.GUI.ViewModels
                 return optionalPvm.Value;
             }
             throw new PackageNotInstalledException(packageId);
+        }
+
+        public bool Contains(string packageId)
+        {
+            return _database.Contains(packageId);
         }
     }
 }
