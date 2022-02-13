@@ -1,0 +1,45 @@
+<!--
+    SPDX-License-Identifier: GPL-3.0-or-later
+    Copyright 2022 Lukas <lumip> Prediger
+-->
+
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:MSFSModManager.GUI.ViewModels"
+        x:Class="MSFSModManager.GUI.Views.SettingsView"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="Height"
+        Width="600"
+        Title="Settings">
+
+    <StackPanel Orientation="Vertical" Margin="10" Spacing="4">
+        <DockPanel
+                HorizontalAlignment="Stretch"
+                ToolTip.Tip="This is the base path in which the Flight Simulator assets/packages/mods are stored. It should contain the folders Community and Official.">
+            <TextBlock
+                DockPanel.Dock="Left"
+                FontWeight="Bold"
+                VerticalAlignment="Center"
+                Margin="0 0 10 0">Content path</TextBlock>
+            <Button
+                DockPanel.Dock="Right"
+                Content="Open"
+                Margin="4 0 0 0"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                VerticalAlignment="Stretch"
+                Command="{Binding OpenContentPathFolderDialog}" />
+            <TextBox
+                Watermark="Content path"
+                HorizontalAlignment="Stretch"
+                Text="{Binding ContentPath}"
+                Foreground="{Binding ContentPathTextColor}" />
+        </DockPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="100" Command="{Binding CancelCommand}" HorizontalContentAlignment="Center">Cancel</Button>
+            <Button Width="100" Command="{Binding ApplyCommand}" HorizontalContentAlignment="Center" FontWeight="Bold">Apply</Button>
+        </StackPanel>
+    </StackPanel>
+</Window>

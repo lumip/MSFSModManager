@@ -25,6 +25,7 @@
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
     <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="0.10.10" />
     <PackageReference Include="Avalonia.ReactiveUI" Version="0.10.10" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />
     <ProjectReference Include="../MSFSModManager.Core/MSFSModManager.Core.csproj" />
   </ItemGroup>
 </Project>

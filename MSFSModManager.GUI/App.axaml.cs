@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021,2022 Lukas <lumip> Prediger
 
 using System;
 using Avalonia;
@@ -13,11 +13,7 @@ using MSFSModManager.Core.PackageSources;
 using System.Net.Http;
 using System.IO;
 
-using System.Collections.Generic;
-using System.Linq;
-
-using System.Threading.Tasks;
-
+using MSFSModManager.GUI.Settings;
 namespace MSFSModManager.GUI
 {
     public class App : Application
@@ -31,20 +27,26 @@ namespace MSFSModManager.GUI
         {
             LogViewModel logger = new LogViewModel();
             GlobalLogger.Instance = logger; 
-
-            GlobalLogger.Log(LogLevel.CriticalError, "Log initialized!");
-
-            string contentPath;
-            try
+            
+            var settingsBuilder = UserSettingsBuilder.LoadFromConfigFile();
+            if (!settingsBuilder.IsComplete)
             {
-                contentPath = ConfigReader.ReadContentPathFromDefaultLocations();
-            }
-            catch (FileNotFoundException)
-            {
-                // development fallback!
-                contentPath = ConfigReader.ReadContentPathFromConfig(@"/media/data/MSFSData/UserCfg.opt");
-            }
+                // todo: WIP currently this just opens the dialog and then quits the application without storing the new settings
+                if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop_)
+                {
+                    desktop_.MainWindow = new SettingsView
+                    {
+                        DataContext = new SettingsViewModel(settingsBuilder)
+                    };
 
+                    base.OnFrameworkInitializationCompleted();
+
+                    return;
+                }
+            }
+            var settings = settingsBuilder.Build();
+            Console.WriteLine(settings.ContentPath);
+            
             IVersionNumber gameVersion = VersionNumber.Infinite;
             try
             {
@@ -60,13 +62,13 @@ namespace MSFSModManager.GUI
             HttpClient client = new HttpClient();
             PackageCache cache = new PackageCache(Path.Join(Path.GetTempPath(), "msfsmodmanager_cache"));
             PackageSourceRegistry sourceRegistry = new PackageSourceRegistry(cache, client);
-            PackageDatabase database = new PackageDatabase(contentPath, sourceRegistry);
+            PackageDatabase database = new PackageDatabase(settings.ContentPath, sourceRegistry);
 
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
                 desktop.MainWindow = new MainWindow
                 {
-                    DataContext = new MainWindowViewModel(database, sourceRegistry, gameVersion, logger, contentPath),
+                    DataContext = new MainWindowViewModel(database, sourceRegistry, gameVersion, logger, settings.ContentPath),
                 };
             }
 
