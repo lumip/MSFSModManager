@@ -11,40 +11,44 @@ using System.Threading.Tasks;
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;
 using DynamicData;
+using System.Reactive;
 
 namespace MSFSModManager.GUI.ViewModels
 {
 
     class PackageCommandFactory
     {
-        private MainWindowViewModel _mainViewModel;
+        private ReactiveCommand<(string, string), Unit> _openAddPackageSourceDialogCommand;
+        private ReactiveCommand<InstalledPackage, Unit> _removePackageSourceCommand;
+        private ReactiveCommand<InstalledPackage, Unit> _uninstallPackageSourceCommand;
 
-        public PackageCommandFactory(MainWindowViewModel mainViewModel)
+        public PackageCommandFactory(
+            ReactiveCommand<(string, string), Unit> openAddPackageSourceDialogCommand, 
+            ReactiveCommand<InstalledPackage, Unit> removePackageSourceCommand,
+            ReactiveCommand<InstalledPackage, Unit> uninstallPackageSourceCommand)
         {
-            _mainViewModel = mainViewModel;
+            _openAddPackageSourceDialogCommand = openAddPackageSourceDialogCommand;
+            _removePackageSourceCommand = removePackageSourceCommand;
+            _uninstallPackageSourceCommand = uninstallPackageSourceCommand;
         }
 
         public IReactiveCommand GetOpenAddPackageSourceDialogCommand(InstalledPackage package)
         {
             return ReactiveCommand.CreateFromTask(
-                async () => await _mainViewModel.DoOpenAddPackageDialog(
-                    package.Id, package.PackageSource?.AsSourceString() ?? ""
+                async () => await _openAddPackageSourceDialogCommand.Execute(
+                    (package.Id, package.PackageSource?.AsSourceString() ?? "")
                 )
             );
         }
 
         public IReactiveCommand GetRemovePackageSourceCommand(InstalledPackage package)
         {
-            // note(lumip): RemovePackageSourceCommand was created with ReactiveCommand.Create, therefore needs to be subscribed
-            //      (which we do by awaiting it), as opposed to the other commands, which were created using
-            //      ReactiveCommand.CreateFromTask (why?? how is this allowed to make a difference here?)
-            //      This is tricky because the failure mode is that the command simply does not execute (no error/exception happens)
-            return ReactiveCommand.Create(async () => await _mainViewModel.RemovePackageSourceCommand.Execute(package));
+            return ReactiveCommand.CreateFromTask(async () => await _removePackageSourceCommand.Execute(package));
         }
 
         public IReactiveCommand GetUninstallPackageCommand(InstalledPackage package)
         {
-            return ReactiveCommand.Create(() => _mainViewModel.UninstallPackageCommand.Execute(package));
+            return ReactiveCommand.CreateFromTask(async () => await _uninstallPackageSourceCommand.Execute(package));
         } 
     }
 

@@ -10,6 +10,7 @@ using System.Reactive.Linq;
 
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;
+using MSFSModManager.GUI.Settings;
 using System.Windows.Input;
 using System.Collections.ObjectModel;
 using System.Reactive;
@@ -57,8 +58,6 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _filterString, value);
         }
 
-        // public List<string> PackageTypes { get; }
-        // public ReadOnlyCollection<string> PackageTypes { get; }
         private int _typeFilterIndex;
         public int TypeFilterIndex
         {
@@ -83,14 +82,16 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _selectedPackage, value);
         }
 
-        private string _contentPath;
-        public string ContentPath
-        {
-            get => _contentPath;
-            set => this.RaiseAndSetIfChanged(ref _contentPath, value);
-        }
 
-        private Settings.UserSettings _settings;
+        private readonly ObservableAsPropertyHelper<string> _contentPath;
+        public string ContentPath => _contentPath.Value;
+
+        private UserSettings _settings;
+        private UserSettings Settings
+        {
+            get => _settings;
+            set => this.RaiseAndSetIfChanged(ref _settings, value);
+        }
         
 #endregion
 
@@ -115,28 +116,26 @@ namespace MSFSModManager.GUI.ViewModels
 
         public Interaction<InstallDialogViewModel, IEnumerable<string>> InstallPackagesDialogInteraction { get; }
 
-        public Interaction<SettingsViewModel, Settings.UserSettings> SettingsDialogInteraction { get; }
+        public Interaction<SettingsViewModel, UserSettings> SettingsDialogInteraction { get; }
         public ReactiveCommand<Unit, Unit> OpenSettingsDialogCommand { get; }
 #endregion
         public MainWindowViewModel(
-            Settings.UserSettings settings,
+            UserSettings settings,
             PackageSourceRegistry packageSourceRegistry,
             IVersionNumber gameVersion,
             LogViewModel log,
             PackageVersionCache latestVersionCache)
         {
-            
-            SettingsDialogInteraction = new Interaction<SettingsViewModel, Settings.UserSettings>();
-            OpenSettingsDialogCommand = ReactiveCommand.CreateFromTask<Unit, Unit>(
-                async settingsBuilder => { await DoOpenSettingsDialog(); return Unit.Default; }
-            );
-
-
             _settings = settings;
-            _contentPath = _settings.ContentPath;
             _latestVersionCache = latestVersionCache;
+            PackageSourceRegistry = packageSourceRegistry;
+
+            GameVersion = gameVersion;
+            Log = log;
+
             VersionFetchingProgress = new AvailableVersionFetchingProgressViewModel();
 
+            // create package specific commands - these must be initialised before loading up the package database
             AddPackageDialogInteraction = new Interaction<AddPackageViewModel, AddPackageDialogReturnValues>();
 
             OpenAddPackageDialogCommand = ReactiveCommand.CreateFromTask(async () => await DoOpenAddPackageDialog());
@@ -149,28 +148,37 @@ namespace MSFSModManager.GUI.ViewModels
                 return Unit.Default;
             });
 
-            PackageSourceRegistry = packageSourceRegistry;
-            
+            // set up view model wrapper for PackageDatabase
             _observableDatabase = new ObservableDatabase(
-                new PackageDatabase(_contentPath, packageSourceRegistry),
-                new PackageCommandFactory(this),
+                new PackageDatabase(_settings.ContentPath, packageSourceRegistry),
+                new PackageCommandFactory(
+                    ReactiveCommand.CreateFromTask(async ((string, string) args) => await DoOpenAddPackageDialog(args.Item1, args.Item2)),
+                    RemovePackageSourceCommand,
+                    UninstallPackageCommand
+                ),
                 _latestVersionCache,
                 VersionFetchingProgress    
             );
 
+            // mirror Settings.ContentPath in ContentPath property
+            _contentPath = this
+                .WhenAnyValue(x => x.Settings.ContentPath)
+                .ToProperty(this, x => x.ContentPath, out _contentPath);
+
+            // any change to ContentPath requires reloading the PackageDatabase
             this.WhenAnyValue(x => x.ContentPath).Subscribe(
                 cp => { _observableDatabase.Database = new PackageDatabase(cp, PackageSourceRegistry); });
 
-            GameVersion = gameVersion;
-
-            Log = log;
+            // Setting up package filters below            
+            IncludeSystemPackages = false;
+            OnlyWithSource = false;
 
             _filterString = string.Empty;
             _typeFilterIndex = TYPE_FILTER_ALL_INDEX;
-            
 
+            // dynamically extract all package types in database for package type filter into local cache
             _packageTypesCache = new SourceList<string>();
-            _packageTypesCache.Insert(TYPE_FILTER_ALL_INDEX, TYPE_FILTER_ALL_STRING);
+            _packageTypesCache.Insert(TYPE_FILTER_ALL_INDEX, TYPE_FILTER_ALL_STRING); // magic "ALL" type
 
             _packageTypesCachePipeline = _observableDatabase.Connect()
                 .DistinctValues(pvm => pvm.Type)
@@ -182,24 +190,25 @@ namespace MSFSModManager.GUI.ViewModels
                     _packageTypesCache.AddRange(types.SortedItems.Select(pair => pair.Value));
                 });
 
+            // bind package type cache to observable collection property PackageTypes for View
             _packageTypesPipeline = _packageTypesCache.Connect()
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Bind(out _packageTypes)
                 .ToCollection()
                 .Subscribe();
 
-            IncludeSystemPackages = false;
-            OnlyWithSource = false;
-
+            // update package filter function whenever a filter is changed
             var packageFilterFunction = this
                 .WhenAnyValue(x => x.FilterString, x => x.TypeFilterIndex, x => x.OnlyWithSource, x => x.IncludeSystemPackages, MakeFilter);
 
+            // filter packages from database to display using filter function
             _filteredPackagesPipeline = _observableDatabase.Connect()
                 .Filter(packageFilterFunction)
                 .ObserveOn(RxApp.MainThreadScheduler)
                 .Bind(out _filteredPackages)
                 .Subscribe();
 
+            // dynamically updated collection of all packages marked for installation
             _installationCandidatesPipeline = _observableDatabase.Connect()
                 .AutoRefresh(pvm => pvm.MarkedForInstall)
                 .Filter(pvm => pvm.MarkedForInstall)
@@ -207,10 +216,16 @@ namespace MSFSModManager.GUI.ViewModels
                 .Bind(out _installationCandidates)
                 .Subscribe();
 
+            // set up remaining UI commands
             InstallPackagesDialogInteraction = new Interaction<InstallDialogViewModel, IEnumerable<string>>();
             InstallSelectedPackagesCommand = ReactiveCommand.CreateFromTask(
                 DoOpenInstallDialog,
                 _installationCandidates.WhenAnyValue(x => x.Count).Select(c => c > 0)
+            );
+            
+            SettingsDialogInteraction = new Interaction<SettingsViewModel, UserSettings>();
+            OpenSettingsDialogCommand = ReactiveCommand.CreateFromTask<Unit, Unit>(
+                async settingsBuilder => { await DoOpenSettingsDialog(); return Unit.Default; }
             );
         }
 
@@ -258,15 +273,14 @@ namespace MSFSModManager.GUI.ViewModels
 
         private async Task DoOpenSettingsDialog()
         {
-            Settings.UserSettingsBuilder settingsBuilder = Settings.UserSettingsBuilder.LoadFromSettings(_settings);
+            UserSettingsBuilder settingsBuilder = UserSettingsBuilder.LoadFromSettings(Settings);
             var dialog = new SettingsViewModel(settingsBuilder);
             var newSettings = await SettingsDialogInteraction.Handle(dialog);
 
             if (newSettings != null)
             {
-                ContentPath = newSettings.ContentPath;
-                _settings = newSettings;
-                _settings.Save();
+                Settings = newSettings;
+                Settings.Save();
             }
         }
 
