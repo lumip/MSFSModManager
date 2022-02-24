@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2022 Lukas <lumip> Prediger
 
-using System;
 using System.Configuration;
-using System.IO;
-using MSFSModManager.Core;
 
 namespace MSFSModManager.GUI.Settings
 {

@@ -36,9 +36,10 @@ namespace MSFSModManager.GUI.Views
             AvaloniaXamlLoader.Load(this);
         }
 
-        private async Task ShowOpenContentPathFolderDialog(InteractionContext<Unit, string?> interaction)
+        private async Task ShowOpenContentPathFolderDialog(InteractionContext<string?, string?> interaction)
         {
             var dialog = new OpenFolderDialog();
+            dialog.Directory = interaction.Input;
             var res = await dialog.ShowAsync(this);
 
             interaction.SetOutput(res);

@@ -16,7 +16,6 @@ using System.Reactive;
 using System.Threading.Tasks;
 using DynamicData;
 using DynamicData.Binding;
-using System.Diagnostics.CodeAnalysis;
 
 namespace MSFSModManager.GUI.ViewModels
 {
@@ -90,6 +89,8 @@ namespace MSFSModManager.GUI.ViewModels
             get => _contentPath;
             set => this.RaiseAndSetIfChanged(ref _contentPath, value);
         }
+
+        private Settings.UserSettings _settings;
         
 #endregion
 
@@ -113,14 +114,27 @@ namespace MSFSModManager.GUI.ViewModels
         public ICommand InstallSelectedPackagesCommand { get; }
 
         public Interaction<InstallDialogViewModel, IEnumerable<string>> InstallPackagesDialogInteraction { get; }
+
+        public Interaction<SettingsViewModel, Settings.UserSettings> SettingsDialogInteraction { get; }
+        public ReactiveCommand<Unit, Unit> OpenSettingsDialogCommand { get; }
 #endregion
-
-
         public MainWindowViewModel(
-            PackageSourceRegistry packageSourceRegistry, IVersionNumber gameVersion, LogViewModel log, string contentPath)
+            Settings.UserSettings settings,
+            PackageSourceRegistry packageSourceRegistry,
+            IVersionNumber gameVersion,
+            LogViewModel log,
+            PackageVersionCache latestVersionCache)
         {
-            _contentPath = contentPath;
-            _latestVersionCache = new PackageVersionCache();
+            
+            SettingsDialogInteraction = new Interaction<SettingsViewModel, Settings.UserSettings>();
+            OpenSettingsDialogCommand = ReactiveCommand.CreateFromTask<Unit, Unit>(
+                async settingsBuilder => { await DoOpenSettingsDialog(); return Unit.Default; }
+            );
+
+
+            _settings = settings;
+            _contentPath = _settings.ContentPath;
+            _latestVersionCache = latestVersionCache;
             VersionFetchingProgress = new AvailableVersionFetchingProgressViewModel();
 
             AddPackageDialogInteraction = new Interaction<AddPackageViewModel, AddPackageDialogReturnValues>();
@@ -138,7 +152,7 @@ namespace MSFSModManager.GUI.ViewModels
             PackageSourceRegistry = packageSourceRegistry;
             
             _observableDatabase = new ObservableDatabase(
-                new PackageDatabase(contentPath, PackageSourceRegistry),
+                new PackageDatabase(_contentPath, packageSourceRegistry),
                 new PackageCommandFactory(this),
                 _latestVersionCache,
                 VersionFetchingProgress    
@@ -240,6 +254,20 @@ namespace MSFSModManager.GUI.ViewModels
         private async Task DoUninstallPackage(InstalledPackage package)
         {
             await Task.Run(() => _observableDatabase.Uninstall(package));
+        }
+
+        private async Task DoOpenSettingsDialog()
+        {
+            Settings.UserSettingsBuilder settingsBuilder = Settings.UserSettingsBuilder.LoadFromSettings(_settings);
+            var dialog = new SettingsViewModel(settingsBuilder);
+            var newSettings = await SettingsDialogInteraction.Handle(dialog);
+
+            if (newSettings != null)
+            {
+                ContentPath = newSettings.ContentPath;
+                _settings = newSettings;
+                _settings.Save();
+            }
         }
 
         private Func<PackageViewModel, bool> MakeFilter(string filterString, int filterTypeIndex, bool onlyWithSource, bool includeSystemPackages)

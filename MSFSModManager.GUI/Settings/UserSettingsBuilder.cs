@@ -55,5 +55,13 @@ namespace MSFSModManager.GUI.Settings
 
             return builder;
         }
+
+        public static UserSettingsBuilder LoadFromSettings(UserSettings settings)
+        {
+            var builder = new UserSettingsBuilder();
+            builder.ContentPath = settings.ContentPath;
+
+            return builder;
+        }
     }
 }

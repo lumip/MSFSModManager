@@ -27,6 +27,7 @@ namespace MSFSModManager.GUI.Views
 
             this.WhenActivated(d => d(ViewModel!.AddPackageDialogInteraction.RegisterHandler(ShowAddPackageDialogAsync)));
             this.WhenActivated(d => d(ViewModel!.InstallPackagesDialogInteraction.RegisterHandler(ShowInstallDialogAsync)));
+            this.WhenActivated(d => d(ViewModel!.SettingsDialogInteraction.RegisterHandler(ShowSettingsDialogAsync)));
         }
 
         private void InitializeComponent()
@@ -49,6 +50,15 @@ namespace MSFSModManager.GUI.Views
             dialog.DataContext = interaction.Input;
 
             var result = await dialog.ShowDialog<IEnumerable<string>>(this);
+            interaction.SetOutput(result);
+        }
+
+        private async Task ShowSettingsDialogAsync(InteractionContext<SettingsViewModel, Settings.UserSettings> interaction)
+        {
+            var dialog = new SettingsView();
+            dialog.DataContext = interaction.Input;
+
+            var result = await dialog.ShowDialog<Settings.UserSettings>(this);
             interaction.SetOutput(result);
         }
     }

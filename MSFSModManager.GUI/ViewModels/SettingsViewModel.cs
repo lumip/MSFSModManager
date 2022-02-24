@@ -52,7 +52,7 @@ namespace MSFSModManager.GUI.ViewModels
         public ReactiveCommand<Unit, UserSettings?> CancelCommand { get; }
 
 
-        public Interaction<Unit, string?> ContentPathFolderDialogInteraction { get; }
+        public Interaction<string?, string?> ContentPathFolderDialogInteraction { get; }
         public IReactiveCommand OpenContentPathFolderDialog { get; }
 
 #endregion
@@ -76,7 +76,7 @@ namespace MSFSModManager.GUI.ViewModels
                 () => (UserSettings?)null
             );
 
-            ContentPathFolderDialogInteraction = new Interaction<Unit, string?>();
+            ContentPathFolderDialogInteraction = new Interaction<string?, string?>();
             OpenContentPathFolderDialog = ReactiveCommand.CreateFromTask(DoOpenContentPathFolderDialog);
         }
 
@@ -87,7 +87,7 @@ namespace MSFSModManager.GUI.ViewModels
 
         private async Task DoOpenContentPathFolderDialog()
         {
-            string? result = await ContentPathFolderDialogInteraction.Handle(Unit.Default);
+            string? result = await ContentPathFolderDialogInteraction.Handle(_settingsBuilder.ContentPath);
             if (!string.IsNullOrWhiteSpace(result))
             {
                 ContentPath = result;

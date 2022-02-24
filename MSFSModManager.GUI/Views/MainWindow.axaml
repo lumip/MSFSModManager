@@ -1,6 +1,6 @@
 <!--
     SPDX-License-Identifier: GPL-3.0-or-later
-    Copyright 2021 Lukas <lumip> Prediger
+    Copyright 2021,2022 Lukas <lumip> Prediger
 -->
 
 <Window xmlns="https://github.com/avaloniaui"
@@ -37,7 +37,8 @@
         <StackPanel DockPanel.Dock="Bottom" Margin="5" Spacing="5">
             <StackPanel Orientation="Horizontal">
                 <Button Command="{Binding OpenAddPackageDialogCommand}">Add Package Source</Button>
-                <Button Command="{Binding InstallSelectedPackagesCommand}">Install Selected</Button> 
+                <Button Command="{Binding InstallSelectedPackagesCommand}">Install Selected</Button>
+                <Button Command="{Binding OpenSettingsDialogCommand}">Settings</Button>
             </StackPanel>
             <views:LogView Height="200" DataContext="{Binding Log}" />
 

@@ -25,29 +25,59 @@ namespace MSFSModManager.GUI
 
         public override void OnFrameworkInitializationCompleted()
         {
-            LogViewModel logger = new LogViewModel();
-            GlobalLogger.Instance = logger; 
-            
-            // var settingsBuilder = UserSettingsBuilder.LoadFromConfigFile();
-            // if (!settingsBuilder.IsComplete)
-            // {
-            //     // todo: WIP currently this just opens the dialog and then quits the application without storing the new settings
-            //     if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop_)
-            //     {
-            //         desktop_.MainWindow = new SettingsView
-            //         {
-            //             DataContext = new SettingsViewModel(settingsBuilder)
-            //         };
+            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            {
+                LogViewModel logger = new LogViewModel();
+                GlobalLogger.Instance = logger;
 
-            //         base.OnFrameworkInitializationCompleted();
+                IVersionNumber gameVersion = VersionNumber.Infinite;
+                try
+                {
+                    gameVersion = new RegistryVersionDetector().Version;
+                    GlobalLogger.Log(LogLevel.Info, $"Game version {gameVersion}.");
+                }
+                catch (Exception e)
+                {
+                    GlobalLogger.Log(LogLevel.Error, "Could not detect game version, assuming latest! This is caused by error:");
+                    GlobalLogger.Log(LogLevel.Error, $"{e.Message}");
+                }
+                
+                var settingsBuilder = UserSettingsBuilder.LoadFromConfigFile();
+                if (!settingsBuilder.IsComplete)
+                {
+                    var settingsView = new SettingsView();
+                    var settingsViewModel = new SettingsViewModel(settingsBuilder);
+                    settingsView.DataContext = settingsViewModel;
+                    settingsViewModel.ApplyCommand.Subscribe(settings => {
+                        if (settings != null)
+                        {
+                            settings.Save();
+                            ShowMainWindow(settings, desktop, logger);
+                        }
+                        else
+                        {
+                            ((ILogger)logger).Log(LogLevel.CriticalError, "Aborting: No settings configured.");
+                            logger.DumpToConsole();
+                        }
+                    });
+                    settingsViewModel.CancelCommand.Subscribe(settings => {
+                        ((ILogger)logger).Log(LogLevel.CriticalError, "Aborting: No settings configured.");
+                        logger.DumpToConsole();
+                    });
+                    settingsView.Show();
+                }
+                else
+                {
+                    var settings = settingsBuilder.Build();
+                    ShowMainWindow(settings, desktop, logger);
+                }
+            }
+            base.OnFrameworkInitializationCompleted();
+        }
 
-            //         return;
-            //     }
-            // }
-            // var settings = settingsBuilder.Build();
-            // var contentPath = settings.ContentPath;
 
-            var contentPath = "/media/data/MSFSData/Manifests/";
+        private void ShowMainWindow(UserSettings settings, IClassicDesktopStyleApplicationLifetime desktop, LogViewModel logger)
+        {
             
             IVersionNumber gameVersion = VersionNumber.Infinite;
             try
@@ -64,19 +94,22 @@ namespace MSFSModManager.GUI
             HttpClient client = new HttpClient();
             PackageCache cache = new PackageCache(Path.Join(Path.GetTempPath(), "msfsmodmanager_cache"));
             PackageSourceRegistry sourceRegistry = new PackageSourceRegistry(cache, client);
-            PackageDatabase database = new PackageDatabase(contentPath, sourceRegistry);
 
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            PackageVersionCache versionCache = new PackageVersionCache();
+
+            Avalonia.Controls.Window? window = null;
+            if (desktop.MainWindow != null)
             {
-                desktop.MainWindow = new MainWindow
-                {
-                    DataContext = new MainWindowViewModel(sourceRegistry, gameVersion, logger, contentPath),
-                };
-
+                window = desktop.MainWindow;
             }
 
-            base.OnFrameworkInitializationCompleted();
-        }
+            desktop.MainWindow = new MainWindow()
+            {
+                DataContext = new MainWindowViewModel(settings, sourceRegistry, gameVersion, logger, versionCache),
+            };
 
+            desktop.MainWindow.Show();
+
+        }
     }
 }
