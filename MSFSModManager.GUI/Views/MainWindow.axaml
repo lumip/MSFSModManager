@@ -28,7 +28,8 @@
                 <ComboBox Items="{Binding PackageTypes}" SelectedIndex="{Binding TypeFilterIndex}"></ComboBox>
                 <Button Command="{Binding ClearFilters}">Clear All Filters</Button>
                 <CheckBox IsChecked="{Binding IncludeSystemPackages}">Include system packages</CheckBox>
-                <CheckBox IsChecked="{Binding OnlyWithSource}">Only with source</CheckBox>
+                <CheckBox IsChecked="{Binding FilterHasSource}">Only with source</CheckBox>
+                <CheckBox IsChecked="{Binding FilterUpdateAvailable}">Update available</CheckBox>
             </StackPanel>
             <TextBox Name="FilterTextBox" Watermark="Filter" Text="{Binding FilterString}" />
         </DockPanel>

@@ -44,11 +44,18 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _includeSystemPackages, value);
         }
 
-        private bool _onlyWithSource;
-        public bool OnlyWithSource
+        private bool _filterHasSource;
+        public bool FilterHasSource
         {
-            get => _onlyWithSource;
-            set => this.RaiseAndSetIfChanged(ref _onlyWithSource, value);
+            get => _filterHasSource;
+            set => this.RaiseAndSetIfChanged(ref _filterHasSource, value);
+        }
+
+        private bool _filterUpdateAvailable;
+        public bool FilterUpdateAvailable
+        {
+            get => _filterUpdateAvailable;
+            set => this.RaiseAndSetIfChanged(ref _filterUpdateAvailable, value);
         }
 
         private string _filterString;
@@ -171,7 +178,8 @@ namespace MSFSModManager.GUI.ViewModels
 
             // Setting up package filters below            
             IncludeSystemPackages = false;
-            OnlyWithSource = false;
+            FilterHasSource = false;
+            FilterUpdateAvailable = false;
 
             _filterString = string.Empty;
             _typeFilterIndex = TYPE_FILTER_ALL_INDEX;
@@ -199,7 +207,14 @@ namespace MSFSModManager.GUI.ViewModels
 
             // update package filter function whenever a filter is changed
             var packageFilterFunction = this
-                .WhenAnyValue(x => x.FilterString, x => x.TypeFilterIndex, x => x.OnlyWithSource, x => x.IncludeSystemPackages, MakeFilter);
+                .WhenAnyValue(
+                    x => x.FilterString,
+                    x => x.TypeFilterIndex,
+                    x => x.FilterHasSource,
+                    x => x.IncludeSystemPackages,
+                    x => x.FilterUpdateAvailable,
+                    MakeFilter
+                );
 
             // filter packages from database to display using filter function
             _filteredPackagesPipeline = _observableDatabase.Connect()
@@ -284,14 +299,15 @@ namespace MSFSModManager.GUI.ViewModels
             }
         }
 
-        private Func<PackageViewModel, bool> MakeFilter(string filterString, int filterTypeIndex, bool onlyWithSource, bool includeSystemPackages)
+        private Func<PackageViewModel, bool> MakeFilter(string filterString, int filterTypeIndex, bool filterHasSource, bool includeSystemPackages, bool filterUpdateAvailable)
         {
             return pvm => 
                     (includeSystemPackages || pvm.Package.IsCommunityPackage) &&
                     (string.IsNullOrWhiteSpace(filterString) || pvm.Package.Id.Contains(filterString)) &&
                     (filterTypeIndex == TYPE_FILTER_ALL_INDEX || filterTypeIndex == -1 ||
                      pvm.Package.Type.ToLowerInvariant().Equals(PackageTypes[filterTypeIndex].ToLowerInvariant())) &&
-                    (!onlyWithSource || pvm.Package.PackageSource != null);
+                    (!filterHasSource || pvm.Package.PackageSource != null) &&
+                    (!filterUpdateAvailable || pvm.IsLatestVersionNewer);
         }
 
         public void ClearFilters()
