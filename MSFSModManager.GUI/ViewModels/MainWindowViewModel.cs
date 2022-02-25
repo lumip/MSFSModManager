@@ -251,6 +251,7 @@ namespace MSFSModManager.GUI.ViewModels
 
             if (addPackageDialogReturn?.PackageSource != null)
             {
+                _latestVersionCache.RemoveCachedVersion(addPackageDialogReturn.PackageSource.PackageId);
                 _observableDatabase.AddPackageSource(addPackageDialogReturn.PackageSource);
                 
                 if (addPackageDialogReturn.MarkForInstallation)
@@ -266,6 +267,7 @@ namespace MSFSModManager.GUI.ViewModels
 
         public void DoRemovePackageSource(InstalledPackage package)
         {
+            _latestVersionCache.RemoveCachedVersion(package);
             _observableDatabase.RemoveSource(package);
         }
 

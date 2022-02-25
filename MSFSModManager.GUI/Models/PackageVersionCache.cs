@@ -49,6 +49,16 @@ namespace MSFSModManager.GUI
             UpdateCachedVersion(package.Id, version);
         }
 
+        public void RemoveCachedVersion(string packageId)
+        {
+            _cachedVersions.Remove(packageId, out _);
+        }
+
+        public void RemoveCachedVersion(InstalledPackage package)
+        {
+            RemoveCachedVersion(package.Id);
+        }
+
         /// <summary>
         /// Fetches the latest available version number for the package.
         /// 
