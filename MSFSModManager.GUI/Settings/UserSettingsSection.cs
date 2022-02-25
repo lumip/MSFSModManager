@@ -29,7 +29,6 @@ namespace MSFSModManager.GUI.Settings
             }
             set
             {
-                var bla = 
                 base["contentPath"] = new ContentPathConfigurationElement(value);
             }
         }

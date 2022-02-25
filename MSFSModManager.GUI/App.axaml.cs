@@ -33,6 +33,9 @@ namespace MSFSModManager.GUI
                 var settingsBuilder = UserSettingsBuilder.LoadFromConfigFile();
                 if (!settingsBuilder.IsComplete)
                 {
+                    GlobalLogger.Log(LogLevel.Info, "No stored settings found - first launch?");
+                    settingsBuilder.FillDefaultsForMissing();
+
                     var settingsView = new SettingsView();
                     var settingsViewModel = new SettingsViewModel(settingsBuilder);
                     settingsView.DataContext = settingsViewModel;
@@ -44,12 +47,12 @@ namespace MSFSModManager.GUI
                         }
                         else
                         {
-                            ((ILogger)logger).Log(LogLevel.CriticalError, "Aborting: No settings configured.");
+                            GlobalLogger.Log(LogLevel.CriticalError, "Aborting: No settings configured.");
                             logger.DumpToConsole();
                         }
                     });
                     settingsViewModel.CancelCommand.Subscribe(settings => {
-                        ((ILogger)logger).Log(LogLevel.CriticalError, "Aborting: No settings configured.");
+                        GlobalLogger.Log(LogLevel.CriticalError, "Aborting: No settings configured.");
                         logger.DumpToConsole();
                     });
                     settingsView.Show();
@@ -84,12 +87,6 @@ namespace MSFSModManager.GUI
             PackageSourceRegistry sourceRegistry = new PackageSourceRegistry(cache, client);
 
             PackageVersionCache versionCache = new PackageVersionCache();
-
-            Avalonia.Controls.Window? window = null;
-            if (desktop.MainWindow != null)
-            {
-                window = desktop.MainWindow;
-            }
 
             desktop.MainWindow = new MainWindow()
             {

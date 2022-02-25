@@ -7,6 +7,7 @@ using System.Configuration;
 
 using ReactiveUI;
 
+using MSFSModManager.Core;
 namespace MSFSModManager.GUI.Settings
 {
     class UserSettingsBuilder : ReactiveObject
@@ -62,6 +63,22 @@ namespace MSFSModManager.GUI.Settings
             builder.ContentPath = settings.ContentPath;
 
             return builder;
+        }
+
+        public void FillDefaultsForMissing()
+        {
+            if (string.IsNullOrWhiteSpace(ContentPath))
+            {
+                try
+                {
+                    ContentPath = ConfigReader.ReadContentPathFromDefaultLocations();
+                    GlobalLogger.Log(LogLevel.Info, $"Content path read from MSFS configuration: {ContentPath} .");
+                }
+                catch (Exception)
+                {
+                    GlobalLogger.Log(LogLevel.Warning, "Could not read content path from MSFS configuration.");
+                }
+            }
         }
     }
 }
