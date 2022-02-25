@@ -1,23 +1,21 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021,2022 Lukas <lumip> Prediger
 
-using System;
 using Newtonsoft.Json.Linq;
 
 namespace MSFSModManager.Core.PackageSources.Github
 {
-    
     public class DefaultArtifactSelector : IGithubReleaseArtifactSelector
     {
         public int SelectReleaseArtifact(string[] artifacts)
         {
             if (artifacts.Length == 0)
             {
-                throw new Exception("Github repository release has no assets!");
+                throw new ArtifactSelectionException("Github repository release has no assets!");
             }
             else if (artifacts.Length > 1)
             {
-                throw new Exception("Github repository release has more than one asset!");
+                throw new ArtifactSelectionException("Github repository release has more than one asset!");
             }
             return 0;
         }

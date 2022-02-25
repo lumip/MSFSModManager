@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021,2022 Lukas <lumip> Prediger
 
-using System;
 using System.Text.RegularExpressions;
 using System.Linq;
 using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
 
 namespace MSFSModManager.Core.PackageSources.Github
 {
@@ -29,11 +27,11 @@ namespace MSFSModManager.Core.PackageSources.Github
             int[] matchedArtifacts = artifacts.Where(a => _regex.IsMatch(a)).Select((a, i) => i).ToArray();
             if (matchedArtifacts.Length == 0)
             {
-                throw new Exception("Github repository release has no matching assets!");
+                throw new ArtifactSelectionException("Github repository release has no matching assets!");
             }
             else if (matchedArtifacts.Length > 1)
             {
-                throw new Exception("Github repository release has more than one matching asset!");
+                throw new ArtifactSelectionException("Github repository release has more than one matching asset!");
             }
             return matchedArtifacts[0];
         }

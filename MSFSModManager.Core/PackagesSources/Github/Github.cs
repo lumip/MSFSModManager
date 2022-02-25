@@ -192,14 +192,10 @@ namespace MSFSModManager.Core.PackageSources.Github
                                 assetTokens.Select(t => JsonUtils.CastMember<string>(t, "name")
                             ).ToArray());
                         }
-                        catch (Exception e)
+                        catch (ArtifactSelectionException e)
                         {
-                            if (e.Message.Contains("no") || e.Message.Contains("more than"))
-                            {
-                                GlobalLogger.Log(LogLevel.Warning, $"{e.Message} ({repository.Name}, {tagName})");
-                                continue;
-                            }
-                            throw e;
+                            GlobalLogger.Log(LogLevel.Warning, $"{e.Message} ({repository.Name}, {tagName})");
+                            continue;
                         }
 
                         string url = JsonUtils.CastMember<string>(assetTokens[artifact], "browser_download_url");
