@@ -157,7 +157,7 @@ namespace MSFSModManager.GUI.ViewModels
 
             // set up view model wrapper for PackageDatabase
             _observableDatabase = new ObservableDatabase(
-                new PackageDatabase(_settings.ContentPath, packageSourceRegistry),
+                new EmptyPackageDatabase(), // initialise empty; the correct database will be loaded by the ContentPath=>Database pipeline below
                 new PackageCommandFactory(
                     ReactiveCommand.CreateFromTask(async ((string, string) args) => await DoOpenAddPackageDialog(args.Item1, args.Item2)),
                     RemovePackageSourceCommand,
@@ -172,9 +172,12 @@ namespace MSFSModManager.GUI.ViewModels
                 .WhenAnyValue(x => x.Settings.ContentPath)
                 .ToProperty(this, x => x.ContentPath, out _contentPath);
 
-            // any change to ContentPath requires reloading the PackageDatabase
-            this.WhenAnyValue(x => x.ContentPath).Subscribe(
-                cp => { _observableDatabase.Database = new PackageDatabase(cp, PackageSourceRegistry); });
+            // any change to Settings.ContentPath requires reloading the PackageDatabase
+            this.WhenAnyValue(x => x.Settings.ContentPath).Subscribe(
+                cp => {
+                    _observableDatabase.Database = new PackageDatabase(cp, PackageSourceRegistry); 
+                }
+            );
 
             // Setting up package filters below            
             IncludeSystemPackages = false;
