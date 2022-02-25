@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2022 Lukas <lumip> Prediger
 
 using MSFSModManager.Core;
 using System.Threading.Tasks;
@@ -7,10 +7,6 @@ using ReactiveUI;
 using System.Linq;
 using System.Reactive.Linq;
 using System;
-
-using MSFSModManager.Core.PackageSources;
-using System.Windows.Input;
-using System.Reactive;
 
 namespace MSFSModManager.GUI.ViewModels
 {
@@ -57,6 +53,12 @@ namespace MSFSModManager.GUI.ViewModels
         private readonly ObservableAsPropertyHelper<bool> _isLatestVersionNewer;
         public bool IsLatestVersionNewer => _isLatestVersionNewer.Value;
 
+        private readonly ObservableAsPropertyHelper<string> _addSourceLabel;
+        public string AddSourceLabel => _addSourceLabel.Value;
+
+        private readonly ObservableAsPropertyHelper<string> _markForInstallLabel;
+        public string MarkForInstallLabel => _markForInstallLabel.Value;
+
         
         public IReactiveCommand OpenAddPackageDialogCommand { get; }
         public IReactiveCommand RemovePackageSourceCommand { get; }
@@ -88,6 +90,20 @@ namespace MSFSModManager.GUI.ViewModels
                 v => LatestVersion = v.Result,
                 TaskContinuationOptions.OnlyOnRanToCompletion
             );
+
+            _addSourceLabel = this
+                .WhenAnyValue(x => x.HasSource)
+                .DefaultIfEmpty(false)
+                .Select(hasSource => hasSource ? "Update Source" : "Add Source")
+                .DefaultIfEmpty("Add Source")
+                .ToProperty(this, x => x.AddSourceLabel, out _addSourceLabel);
+
+            _markForInstallLabel = this
+                .WhenAnyValue(x => x.IsInstalled)
+                .DefaultIfEmpty(false)
+                .Select(isInstalled => isInstalled ? "Select for Update" : "Select for Installation")
+                .DefaultIfEmpty("Select for Installation")
+                .ToProperty(this, x => x.MarkForInstallLabel, out _markForInstallLabel);
 
             OpenAddPackageDialogCommand = openAddPackageDialogCommand;
             RemovePackageSourceCommand = removePackageSourceCommand;

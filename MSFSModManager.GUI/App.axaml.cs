@@ -29,18 +29,6 @@ namespace MSFSModManager.GUI
             {
                 LogViewModel logger = new LogViewModel();
                 GlobalLogger.Instance = logger;
-
-                IVersionNumber gameVersion = VersionNumber.Infinite;
-                try
-                {
-                    gameVersion = new RegistryVersionDetector().Version;
-                    GlobalLogger.Log(LogLevel.Info, $"Game version {gameVersion}.");
-                }
-                catch (Exception e)
-                {
-                    GlobalLogger.Log(LogLevel.Error, "Could not detect game version, assuming latest! This is caused by error:");
-                    GlobalLogger.Log(LogLevel.Error, $"{e.Message}");
-                }
                 
                 var settingsBuilder = UserSettingsBuilder.LoadFromConfigFile();
                 if (!settingsBuilder.IsComplete)

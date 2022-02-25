@@ -82,8 +82,8 @@ namespace MSFSModManager.GUI.ViewModels
         public ReadOnlyObservableCollection<string> PackageTypes => _packageTypes;
 
         
-        private PackageViewModel? _selectedPackage;
-        public PackageViewModel? SelectedPackage
+        private ViewModelBase? _selectedPackage;
+        public ViewModelBase? SelectedPackage
         {
             get => _selectedPackage;
             set => this.RaiseAndSetIfChanged(ref _selectedPackage, value);
@@ -242,6 +242,8 @@ namespace MSFSModManager.GUI.ViewModels
             OpenSettingsDialogCommand = ReactiveCommand.CreateFromTask<Unit, Unit>(
                 async settingsBuilder => { await DoOpenSettingsDialog(); return Unit.Default; }
             );
+
+            _selectedPackage = new NullPackageViewModel();
         }
 
         public async Task DoOpenAddPackageDialog(string packageId = "", string packageSourceString = "")
@@ -316,6 +318,8 @@ namespace MSFSModManager.GUI.ViewModels
         {
             FilterString = string.Empty;
             TypeFilterIndex = 0;
+            FilterHasSource = false;
+            FilterUpdateAvailable = false;
         }
 
     }

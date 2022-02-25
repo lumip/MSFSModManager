@@ -21,26 +21,26 @@
     <DockPanel>
         <!-- Filter option panel -->
         <DockPanel DockPanel.Dock="Top" Margin="2">
-            <TextBlock Text="Filter" VerticalAlignment="Center" DockPanel.Dock="Left" />
+            <TextBlock Text="Filter" VerticalAlignment="Center" DockPanel.Dock="Left" Margin="5 0 5 0" />
             
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="5" Margin="2">
                 <TextBlock Text="Type" VerticalAlignment="Center" />
                 <ComboBox Items="{Binding PackageTypes}" SelectedIndex="{Binding TypeFilterIndex}"></ComboBox>
-                <Button Command="{Binding ClearFilters}">Clear All Filters</Button>
-                <CheckBox IsChecked="{Binding IncludeSystemPackages}">Include system packages</CheckBox>
                 <CheckBox IsChecked="{Binding FilterHasSource}">Only with source</CheckBox>
                 <CheckBox IsChecked="{Binding FilterUpdateAvailable}">Update available</CheckBox>
+                <CheckBox IsChecked="{Binding IncludeSystemPackages}">Include system packages</CheckBox>
+                <Button Command="{Binding ClearFilters}" DockPanel.Dock="Left">Clear All Filters</Button>
             </StackPanel>
-            <TextBox Name="FilterTextBox" Watermark="Filter" Text="{Binding FilterString}" />
+            <TextBox Name="FilterTextBox" Watermark="Filter" Text="{Binding FilterString}" VerticalContentAlignment="Center" Margin="5 0 5 0" />
         </DockPanel>
 
         <!-- Button and Log panel -->
         <StackPanel DockPanel.Dock="Bottom" Margin="5" Spacing="5">
-            <StackPanel Orientation="Horizontal">
-                <Button Command="{Binding OpenAddPackageDialogCommand}">Add Package Source</Button>
-                <Button Command="{Binding InstallSelectedPackagesCommand}">Install Selected</Button>
-                <Button Command="{Binding OpenSettingsDialogCommand}">Settings</Button>
-            </StackPanel>
+            <DockPanel LastChildFill="true">
+                <Button DockPanel.Dock="Left" Command="{Binding OpenAddPackageDialogCommand}">Add Package Source</Button>
+                <Button DockPanel.Dock="Left" Command="{Binding InstallSelectedPackagesCommand}">Install Selected</Button>
+                <Button DockPanel.Dock="Right" HorizontalAlignment="Right" Command="{Binding OpenSettingsDialogCommand}">Application Settings</Button>
+            </DockPanel>
             <views:LogView Height="200" DataContext="{Binding Log}" />
 
             <!-- Status Bar -->
@@ -63,7 +63,6 @@
                         CanUserSortColumns="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
-                        <!-- <DataGridTextColumn Width="Auto" Header="Installed Version" Binding="{Binding Version}" TextAlignment="Right" /> -->
                         <DataGridTemplateColumn Width="Auto" Header="Installed Version">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>

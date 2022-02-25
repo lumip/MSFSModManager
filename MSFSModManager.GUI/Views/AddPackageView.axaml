@@ -1,6 +1,6 @@
 <!--
     SPDX-License-Identifier: GPL-3.0-or-later
-    Copyright 2021 Lukas <lumip> Prediger
+    Copyright 2021,2022 Lukas <lumip> Prediger
 -->
 
 <Window xmlns="https://github.com/avaloniaui"
@@ -26,10 +26,13 @@ For example, it may be the URL/link to a Github repository, such as https://gith
         </TextBlock>
         <TextBox Watermark="Package Id" HorizontalAlignment="Stretch" Text="{Binding PackageId}" Foreground="{Binding PackageIdTextColor}" />
         <TextBox Watermark="Source URL" HorizontalAlignment="Stretch" Text="{Binding PackageSourceString}" />
-        <StackPanel Orientation="Horizontal">
-            <CheckBox IsChecked="{Binding MarkForInstallation}">Mark for installation</CheckBox>
-            <CheckBox IsEnabled="{Binding MarkForInstallation}" IsChecked="{Binding InstallAfterAdding}">Perform installation after adding</CheckBox>
-        </StackPanel>
+        <Grid ColumnDefinitions="*,*">
+            <CheckBox Grid.Column="0"
+                IsChecked="{Binding MarkForInstallation}">Select for installation</CheckBox>
+            <CheckBox Grid.Column="1"
+                IsEnabled="{Binding MarkForInstallation}"
+                IsChecked="{Binding InstallAfterAdding}">Start installation after adding</CheckBox>
+        </Grid>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Width="100" Command="{Binding CancelCommand}" HorizontalContentAlignment="Center">Cancel</Button>
             <Button Width="100" Command="{Binding AddPackageCommand}" HorizontalContentAlignment="Center" Content="{Binding AddButtonLabel}" />

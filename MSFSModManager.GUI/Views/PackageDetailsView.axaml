@@ -1,6 +1,6 @@
 <!--
     SPDX-License-Identifier: GPL-3.0-or-later
-    Copyright 2021 Lukas <lumip> Prediger
+    Copyright 2021,2022 Lukas <lumip> Prediger
 -->
 
 <UserControl xmlns="https://github.com/avaloniaui"
@@ -37,10 +37,21 @@
         <StackPanel>
             <TextBlock Text="Package Source" FontWeight="Bold" />
             <TextBlock Text="{Binding Source}" TextWrapping="Wrap" />
-            <StackPanel Orientation="Horizontal">
-                <Button Command="{Binding OpenAddPackageDialogCommand}">Add/Update Source</Button>
-                <Button Command="{Binding RemovePackageSourceCommand}" IsEnabled="{Binding HasSource}">Remove Source</Button>
-            </StackPanel>
+            <Grid ColumnDefinitions="*,*" Margin="0 2">
+                <Button Grid.Column="0"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Command="{Binding OpenAddPackageDialogCommand}"
+                    Content="{Binding AddSourceLabel}" />
+                <Button Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    HorizontalContentAlignment="Center"
+                    Command="{Binding RemovePackageSourceCommand}"
+                    IsEnabled="{Binding HasSource}"
+                    Content="Remove Source" />
+            </Grid>
         </StackPanel>
 
         <StackPanel>
@@ -51,15 +62,14 @@
             </StackPanel>
         </StackPanel>
 
-        <CheckBox IsChecked="{Binding MarkedForInstall}" IsEnabled="{Binding IsLatestVersionNewer}">Select for Update/Installation</CheckBox>
-        <Button Command="{Binding UninstallPackageCommand}" HorizontalAlignment="Stretch">
+        <CheckBox IsChecked="{Binding MarkedForInstall}" IsEnabled="{Binding IsLatestVersionNewer}" Content="{Binding MarkForInstallLabel}" />
+        <Button Command="{Binding UninstallPackageCommand}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Uninstall">
             <Button.IsEnabled>
                 <MultiBinding Converter="{x:Static BoolConverters.And}">
                     <Binding Path="IsInstalled" />
                     <Binding Path="IsCommunityPackage" />
                 </MultiBinding>
             </Button.IsEnabled>
-            Uninstall
         </Button>
     </StackPanel>
 </UserControl>
