@@ -16,7 +16,10 @@ namespace MSFSModManager.Core
     public static class DependencyResolver
     {
 
-        private static Dictionary<string, DependencyNode> BuildDatabaseDependencyGraph(IPackageDatabase database)
+        private static Dictionary<string, DependencyNode> BuildDatabaseDependencyGraph(
+            IPackageDatabase database,
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
         {
             Dictionary<string, DependencyNode> nodes = new Dictionary<string, DependencyNode>();
             HashSet<DependencyNode> floatingNodes = new HashSet<DependencyNode>();
@@ -24,6 +27,8 @@ namespace MSFSModManager.Core
             Queue<DependencyNode> resolverQueue = new Queue<DependencyNode>();
             foreach (var package in database.Packages.Where(p => p.Manifest != null))
             {
+                cancellationToken.ThrowIfCancellationRequested();
+
                 DependencyNode node;
                 if (!nodes.TryGetValue(package.Id, out node))
                 {
@@ -60,10 +65,11 @@ namespace MSFSModManager.Core
         /// <returns></returns>
         public static HashSet<string> FindDependentPackages(
             IEnumerable<string> ofPackages,
-            IPackageDatabase database
+            IPackageDatabase database,
+            CancellationToken cancellationToken = default(CancellationToken)
         )
         {
-            Dictionary<string, DependencyNode> nodes = BuildDatabaseDependencyGraph(database);
+            Dictionary<string, DependencyNode> nodes = BuildDatabaseDependencyGraph(database, cancellationToken);
 
             HashSet<string> dependentPackages = new HashSet<string>();
             Queue<DependencyNode> resolverQueue = new Queue<DependencyNode>();
@@ -82,6 +88,8 @@ namespace MSFSModManager.Core
 
             while (resolverQueue.Count > 0)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                
                 var node = resolverQueue.Dequeue();
                 if (!dependentPackages.Contains(node.PackageId))
                 {
