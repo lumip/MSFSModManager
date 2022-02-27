@@ -1,0 +1,48 @@
+<!--
+    SPDX-License-Identifier: GPL-3.0-or-later
+    Copyright 2022 Lukas <lumip> Prediger
+-->
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="using:MSFSModManager.GUI"
+             xmlns:vm="using:MSFSModManager.GUI.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MSFSModManager.GUI.Views.PackageUninstallationProgressView">
+    <Grid>
+        <DataGrid 
+                Items="{Binding UninstallingPackages}"
+                HeadersVisibility="None"
+                AutoGenerateColumns="False"
+                CanUserResizeColumns="False"
+                CanUserSortColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
+                <DataGridTemplateColumn
+                        Header="Progress"
+                        Width="200"
+                        IsVisible="{Binding IsProgressVisible}">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Panel>
+                                <ProgressBar
+                                    IsIndeterminate="{Binding IsIndeterminate, Mode=OneWay}"
+                                    Value="{Binding CurrentProgress, Mode=OneWay}"
+                                    Minimum="0"
+                                    Maximum="{Binding TotalProgress, Mode=OneWay}"
+                                    VerticalAlignment="Stretch" />
+                                <TextBlock
+                                    Text="{Binding StatusLabel, Mode=OneWay}"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    FontWeight="{Binding StatusLabelFontWeight, Mode=OneWay}"
+                                    Foreground="{Binding StatusLabelColor, Mode=OneWay}" />
+                            </Panel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>     
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,36 @@
+<!--
+    SPDX-License-Identifier: GPL-3.0-or-later
+    Copyright 2022 Lukas <lumip> Prediger
+-->
+
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="using:MSFSModManager.GUI.Views"
+             x:Class="MSFSModManager.GUI.Views.DependentPackagesLookupPageView">
+    <DockPanel Margin="4">
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock HorizontalAlignment="Center">Packages selected for removal:</TextBlock>
+            <Grid>
+                <DataGrid 
+                        Items="{Binding $parent[Window].DataContext.RemovalCandidates}"
+                        HeadersVisibility="None"
+                        AutoGenerateColumns="True"
+                        CanUserResizeColumns="False"
+                        CanUserSortColumns="False">
+                </DataGrid>
+            </Grid>
+        </StackPanel>
+        <Button
+            DockPanel.Dock="Bottom"
+            Command="{Binding $parent[Window].DataContext.CloseCommand}"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Center"
+            Content="Cancel" />
+        <StackPanel>
+            <TextBlock HorizontalAlignment="Center">Looking up dependent packages...</TextBlock>
+            <ProgressBar IsIndeterminate="True" />
+        </StackPanel>
+    </DockPanel>
+</UserControl>

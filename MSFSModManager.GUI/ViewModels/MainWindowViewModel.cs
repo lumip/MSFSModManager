@@ -117,14 +117,15 @@ namespace MSFSModManager.GUI.ViewModels
         public ReactiveCommand<Unit, Unit> OpenAddPackageDialogCommand { get; }
         public ReactiveCommand<InstalledPackage, Unit> RemovePackageSourceCommand { get; }
 
-        public ReactiveCommand<InstalledPackage, Unit> UninstallPackageCommand { get; }
-
-        public ICommand InstallSelectedPackagesCommand { get; }
 
         public Interaction<InstallDialogViewModel, IEnumerable<string>> InstallPackagesDialogInteraction { get; }
+        public ICommand InstallSelectedPackagesCommand { get; }
 
         public Interaction<SettingsViewModel, UserSettings> SettingsDialogInteraction { get; }
         public ReactiveCommand<Unit, Unit> OpenSettingsDialogCommand { get; }
+
+        public Interaction<UninstallDialogViewModel, IEnumerable<string>> UninstallPackagesDialogInteraction { get; }
+        public ReactiveCommand<InstalledPackage, Unit> UninstallPackageCommand { get; }
 #endregion
         public MainWindowViewModel(
             UserSettings settings,
@@ -150,6 +151,8 @@ namespace MSFSModManager.GUI.ViewModels
                 DoRemovePackageSource(p);
                 return Unit.Default;
             });
+
+            UninstallPackagesDialogInteraction = new Interaction<UninstallDialogViewModel, IEnumerable<string>>();
             UninstallPackageCommand = ReactiveCommand.CreateFromTask<InstalledPackage, Unit>(async p => {
                 await DoUninstallPackage(p);
                 return Unit.Default;
@@ -290,7 +293,8 @@ namespace MSFSModManager.GUI.ViewModels
 
         private async Task DoUninstallPackage(InstalledPackage package)
         {
-            await Task.Run(() => _observableDatabase.Uninstall(package));
+            var dialog = new UninstallDialogViewModel(_observableDatabase, new [] { package });
+            await UninstallPackagesDialogInteraction.Handle(dialog);
         }
 
         private async Task DoOpenSettingsDialog()

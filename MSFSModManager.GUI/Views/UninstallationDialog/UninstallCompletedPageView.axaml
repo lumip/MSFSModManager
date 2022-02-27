@@ -1,0 +1,59 @@
+<!--
+    SPDX-License-Identifier: GPL-3.0-or-later
+    Copyright 2022 Lukas <lumip> Prediger
+-->
+
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MSFSModManager.GUI.ViewModels"
+             xmlns:views="using:MSFSModManager.GUI.Views"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="MSFSModManager.GUI.Views.UninstallCompletedPageView">
+    <DockPanel Margin="4">
+        <TextBlock
+            DockPanel.Dock="Top"
+            HorizontalAlignment="Stretch"
+            TextAlignment="Center"
+            FontSize="18"
+            FontWeight="Bold"
+            Margin="0 10 0 10"
+            Text="Uninstallation Completed" />
+        <Button
+            DockPanel.Dock="Bottom"
+            Command="{Binding $parent[Window].DataContext.CloseCommand}"
+            HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Center"
+            Content="Close" />
+
+        <StackPanel Spacing="4">
+            <TextBlock Text="The following packages were successfully uninstalled:" />
+            <Grid>
+                <DataGrid
+                        Items="{Binding PackagesUninstalled}"
+                        HeadersVisibility="None"
+                        AutoGenerateColumns="False"
+                        CanUserResizeColumns="False"
+                        CanUserSortColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+            <TextBlock Text="The following packages encountered an error during uninstallation:" Margin="0 6 0 0" />
+            <Grid>
+                <DataGrid
+                        Items="{Binding PackagesFailed}"
+                        HeadersVisibility="None"
+                        AutoGenerateColumns="False"
+                        CanUserResizeColumns="False"
+                        CanUserSortColumns="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </StackPanel>
+    </DockPanel>
+</UserControl>

@@ -28,6 +28,7 @@ namespace MSFSModManager.GUI.Views
             this.WhenActivated(d => d(ViewModel!.AddPackageDialogInteraction.RegisterHandler(ShowAddPackageDialogAsync)));
             this.WhenActivated(d => d(ViewModel!.InstallPackagesDialogInteraction.RegisterHandler(ShowInstallDialogAsync)));
             this.WhenActivated(d => d(ViewModel!.SettingsDialogInteraction.RegisterHandler(ShowSettingsDialogAsync)));
+            this.WhenActivated(d => d(ViewModel!.UninstallPackagesDialogInteraction.RegisterHandler(ShowUninstallDialogAsync)));
         }
 
         private void InitializeComponent()
@@ -59,6 +60,15 @@ namespace MSFSModManager.GUI.Views
             dialog.DataContext = interaction.Input;
 
             var result = await dialog.ShowDialog<Settings.UserSettings>(this);
+            interaction.SetOutput(result);
+        }
+
+        private async Task ShowUninstallDialogAsync(InteractionContext<UninstallDialogViewModel, IEnumerable<string>> interaction)
+        {
+            var dialog = new UninstallDialogView();
+            dialog.DataContext = interaction.Input;
+
+            var result = await dialog.ShowDialog<IEnumerable<string>>(this);
             interaction.SetOutput(result);
         }
     }
