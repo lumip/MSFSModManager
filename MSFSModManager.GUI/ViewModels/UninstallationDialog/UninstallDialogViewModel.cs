@@ -75,7 +75,7 @@ namespace MSFSModManager.GUI.ViewModels
         {
             ct.ThrowIfCancellationRequested();
 
-            HashSet<string> dependentPackages;
+            IEnumerable<DependencyNode> dependentPackages;
             try
             {
                 GlobalLogger.Log(LogLevel.Info, "Looking up dependent packages for uninstallation...");
@@ -109,7 +109,7 @@ namespace MSFSModManager.GUI.ViewModels
             }
 
             UninstallationProgressList = new PackageUninstallationProgressViewModel(
-                dependentPackages.Select(pid => _database.GetInstalledPackage(pid).Package).Concat(_removalCandidates)
+                dependentPackages.Select(pdn => _database.GetInstalledPackage(pdn.PackageId).Package).Concat(_removalCandidates)
             );
             UninstallationProgressList.IsProgressVisible = false;
 

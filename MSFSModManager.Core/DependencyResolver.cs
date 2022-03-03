@@ -22,9 +22,7 @@ namespace MSFSModManager.Core
         )
         {
             Dictionary<string, DependencyNode> nodes = new Dictionary<string, DependencyNode>();
-            HashSet<DependencyNode> floatingNodes = new HashSet<DependencyNode>();
 
-            Queue<DependencyNode> resolverQueue = new Queue<DependencyNode>();
             foreach (var package in database.Packages.Where(p => p.Manifest != null))
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -42,16 +40,10 @@ namespace MSFSModManager.Core
                     {
                         dependencyNode = new DependencyNode(dependency.Id);
                         nodes.Add(dependency.Id, dependencyNode);
-                        floatingNodes.Add(dependencyNode);
                     }
                     node.AddChild(dependencyNode, dependency.VersionBounds);
                 }
                 node.Actualize(package.Manifest);
-
-                if (node.Parents.Count > 0)
-                {
-                    floatingNodes.Remove(node);
-                }
             }
 
             return nodes;
@@ -62,8 +54,11 @@ namespace MSFSModManager.Core
         /// </summary>
         /// <param name="ofPackages"></param>
         /// <param name="database"></param>
-        /// <returns></returns>
-        public static HashSet<string> FindDependentPackages(
+        /// <returns>
+        /// An ordered enumerable of DependencyNode instances representing the given packages and all packages depending on them.
+        /// The nodes are ordered such that all packages depending on a node will occur after it.
+        /// </returns>
+        public static IEnumerable<DependencyNode> FindDependentPackages(
             IEnumerable<string> ofPackages,
             IPackageDatabase database,
             CancellationToken cancellationToken = default(CancellationToken)
@@ -71,7 +66,12 @@ namespace MSFSModManager.Core
         {
             Dictionary<string, DependencyNode> nodes = BuildDatabaseDependencyGraph(database, cancellationToken);
 
-            HashSet<string> dependentPackages = new HashSet<string>();
+            // nodes now contains the full dependency graph of the database, where a parent-child connection
+            // indicates that child depends on parent. We want to get rid of all nodes that do not represent parents
+            // (dependants) of the packages in ofPackages.
+
+            var orderedNodes = new List<DependencyNode>(); // keep track of the order in which nodes are processed
+            var retainedNodes = new HashSet<DependencyNode>();
             Queue<DependencyNode> resolverQueue = new Queue<DependencyNode>();
 
             foreach (var packageId in ofPackages)
@@ -79,10 +79,7 @@ namespace MSFSModManager.Core
                 DependencyNode node;
                 if (nodes.TryGetValue(packageId, out node))
                 {
-                    foreach (var dependent in node.Parents)
-                    {
-                        resolverQueue.Enqueue(dependent);
-                    }
+                    resolverQueue.Enqueue(node);
                 }
             }
 
@@ -91,17 +88,36 @@ namespace MSFSModManager.Core
                 cancellationToken.ThrowIfCancellationRequested();
                 
                 var node = resolverQueue.Dequeue();
-                if (!dependentPackages.Contains(node.PackageId))
+                if (retainedNodes.Add(node))
                 {
-                    dependentPackages.Add(node.PackageId);
                     foreach (var dependent in node.Parents)
                     {
+                        orderedNodes.Add(dependent);
                         resolverQueue.Enqueue(dependent);
                     }
                 }
             }
 
-            return dependentPackages;
+            // At this point, we have all dependent nodes in retainedNodes but they may still have children (i.e., dependencies)
+            // outside of that set. In the next step we clear those up.
+            foreach (var node in retainedNodes)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                foreach (var child in node.Children.Where(c => !retainedNodes.Contains(c)))
+                {
+                    node.RemoveChild(child);
+                }
+            }
+
+            // Finally, we want to linearly order the nodes by the dependency relation (such that each node in the order can only
+            // depend on succeeding nodes, or, equivalently, each nodes dependants occur before it).
+            // This allows uninstallation to simply step through the lists, removing the packages corresponding to the nodes in order without.
+            // In orderedNodes we currently have a list of all nodes in the order they were processed in the queue (potentially with duplicates).
+            // This means that the last occurence of a node in this list is the point when it was last encountered as a parent of any node
+            // in retainedNodes. Therefore, reversing orderedNodes and keeping only each first occurence of each node will give us the order we want.
+
+            // this assumes that Distinct() always keeps the first occurence of duplicated elements. This is currently the case but no API guarantee.
+            return orderedNodes.AsEnumerable().Reverse().Distinct();
         }
 
         /// <summary>

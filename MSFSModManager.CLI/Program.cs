@@ -370,7 +370,7 @@ namespace MSFSModManager.CLI
                 return ReturnCode.OperationNotAllowedError;
             }
 
-            IEnumerable<string> dependentPackages = DependencyResolver.FindDependentPackages(
+            IEnumerable<DependencyNode> dependentPackages = DependencyResolver.FindDependentPackages(
                 new[] { packageId }, database
             );
 
@@ -380,7 +380,7 @@ namespace MSFSModManager.CLI
                     $"The following installed packages depend on {packageId} and must be uninstalled first:");
                 foreach (var dependentId in dependentPackages)
                 {
-                    GlobalLogger.Log(LogLevel.Output, dependentId);
+                    GlobalLogger.Log(LogLevel.Output, dependentId.PackageId);
                 }
                 GlobalLogger.Log(LogLevel.CriticalError,
                     "Cannot uninstall package with installed dependants.");
