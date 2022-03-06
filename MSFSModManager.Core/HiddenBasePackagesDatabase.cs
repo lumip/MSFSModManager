@@ -52,14 +52,29 @@ namespace MSFSModManager.Core
 
         public bool Contains(string packageId, VersionBounds versionBounds)
         {
-            return (packageId.StartsWith("fs-base")) || _database.Contains(packageId, versionBounds);
+            if (packageId.StartsWith("fs-base"))
+            {
+                if (_database.Contains(packageId))
+                {
+                    return _database.Contains(packageId, versionBounds);
+                }
+                return true; // this is apparently one of those hidden packages which are not in a folder
+            }
+            return _database.Contains(packageId, versionBounds);
         }
 
         public InstalledPackage GetInstalledPackage(string packageId)
         {
             if (packageId.StartsWith("fs-base"))
             {
-                throw new NotSupportedException($"Cannot get installation info for fs-base packages.");
+                try
+                {
+                    return _database.GetInstalledPackage(packageId);
+                }
+                catch (PackageNotInstalledException)
+                {
+                    throw new NotSupportedException($"Cannot get installation info for fs-base packages.");
+                }
             }
             return _database.GetInstalledPackage(packageId);
         }

@@ -117,7 +117,6 @@ namespace MSFSModManager.CLI
             
             GlobalLogger.Log(LogLevel.Info, $"Content directory: {contentPath}");
 
-
             try
             {
                 switch (command)
@@ -195,30 +194,71 @@ namespace MSFSModManager.CLI
             return ReturnCode.Success;
         }
 
-        static ReturnCode AddSource(string contentPath, string[] args)
+        static IPackageSource ParsePackageSource(string[] sourceStrings, IPackageSourceRegistry sourceRegistry)
         {
-            string packageId = args[1];
-            string[] sourceStrings = args.Skip(2).ToArray();
-            return AddSource(contentPath, packageId, sourceStrings);
+            if (sourceStrings.Length == 0)
+            {
+                throw new ArgumentException("No package source string is given!");
+            }
+
+            if (!Uri.IsWellFormedUriString(sourceStrings[0], UriKind.Absolute))
+            {
+                // assume first argument is a packageId
+                string packageId = sourceStrings[0];
+                sourceStrings = sourceStrings.Skip(1).ToArray();
+
+                if (sourceStrings.Length == 0)
+                {
+                    throw new ArgumentException("No package source string is given!");
+                }
+
+                try
+                {
+                    return sourceRegistry.ParseSourceStrings(packageId, sourceStrings);
+                }
+                catch (ArgumentException)
+                {
+                    throw new ArgumentException("Could not interpret source options: No handler for source type is known.");
+                }
+            }
+            else
+            {
+                // no packageId is explicitely given
+                try
+                {
+                    return sourceRegistry.ParseSourceStrings(sourceStrings).Result;
+                }
+                catch (ArgumentException)
+                {
+                    throw new ArgumentException("Could not interpret source options: No handler for source type is known.");
+                }
+            }
         }
 
-        static ReturnCode AddSource(string contentPath, string packageId, string[] sourceStrings)
+        static ReturnCode AddSource(string contentPath, string[] args)
         {
             (PackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
 
-            IPackageSource source;
-            try
+            string[] sourceStrings = args.Skip(1).ToArray();
+
+            if (sourceStrings.Length == 0)
             {
-                source = ((PackageDatabase)database).SourceRegistry.ParseSourceStrings(packageId, sourceStrings);
-            }
-            catch (ArgumentException)
-            {
-                GlobalLogger.Log(LogLevel.CriticalError, "Could not interpret source options: No handler for source type is known.");
+                GlobalLogger.Log(LogLevel.CriticalError, "No package source string is given!");
                 return ReturnCode.ArgumentError;
             }
 
-            database.AddPackageSource(packageId, source);
-            return ReturnCode.Success;
+            try
+            {
+                IPackageSource source = ParsePackageSource(sourceStrings, ((PackageDatabase)database).SourceRegistry);
+                database.AddPackageSource(source.PackageId, source);
+                GlobalLogger.Log(LogLevel.Output, $"Added/updated package source for {source.PackageId}");
+                return ReturnCode.Success;
+            }
+            catch (ArgumentException e)
+            {
+                GlobalLogger.Log(LogLevel.CriticalError, e.Message);
+                return ReturnCode.ArgumentError;
+            }
         }
 
         static ReturnCode RemoveSource(string contentPath, string[] args)
@@ -237,11 +277,12 @@ namespace MSFSModManager.CLI
 
         static ReturnCode Install(string contentPath, string[] args)
         {
+            bool packageIdPresent = !Uri.IsWellFormedUriString(args[1], UriKind.Absolute);
             string packageId = args[1];
-            if (args.Length > 2)
+            if (args.Length > 2 || !packageIdPresent)
             {
-                string[] sourceStrings = args.Skip(2).ToArray();
-                return InstallFromGivenSource(contentPath, packageId, sourceStrings);
+                string[] sourceStrings = args.Skip(1).ToArray();
+                return InstallFromGivenSource(contentPath, sourceStrings);
             }
             return InstallFromKnownSource(contentPath, packageId);
         }
@@ -312,24 +353,24 @@ namespace MSFSModManager.CLI
             return DoInstall(installationCandidates, database, sourceRepository);
         }
 
-        static ReturnCode InstallFromGivenSource(string contentPath, string packageId, string[] sourceStrings)
+        static ReturnCode InstallFromGivenSource(string contentPath, string[] sourceStrings)
         {
             (IPackageDatabase database, PackageCache cache) = LoadDatabase(contentPath);
 
             IPackageSource source;
             try
             {
-                source = ((PackageDatabase)database).SourceRegistry.ParseSourceStrings(packageId, sourceStrings);
+                source = ParsePackageSource(sourceStrings, ((PackageDatabase)database).SourceRegistry);
             }
-            catch (ArgumentException)
+            catch (ArgumentException e)
             {
-                GlobalLogger.Log(LogLevel.CriticalError, "Could not interpret source options: No handler for source type is known.");
+                GlobalLogger.Log(LogLevel.CriticalError, e.Message);
                 return ReturnCode.ArgumentError;
             }
-            GlobalLogger.Log(LogLevel.Info, $"Installing {packageId} from source {source} without storing source for future use!");
+            GlobalLogger.Log(LogLevel.Info, $"Installing {source.PackageId} from source {source} without storing source for future use!");
 
             PackageDependency[] installationCandidates = new PackageDependency[] {
-                new PackageDependency(packageId, VersionBounds.Unbounded)
+                new PackageDependency(source.PackageId, VersionBounds.Unbounded)
             };
 
             IPackageSourceRepository sourceRepository = new HiddenBasePackageSourceRepositoryDecorator(
