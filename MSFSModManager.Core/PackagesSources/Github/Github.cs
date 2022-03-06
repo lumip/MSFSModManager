@@ -112,12 +112,16 @@ namespace MSFSModManager.Core.PackageSources.Github
             return new ProductInfoHeaderValue("lumip", "0.1");
         }
 
-        static async Task<string> MakeRequest(string requestUrl, HttpClient client)
+
+        static async Task<string> MakeRequest(
+            string requestUrl,
+            HttpClient client,
+            CancellationToken cancellationToken)
         {
             HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
             request.Headers.UserAgent.Add(GetUserAgent());
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
-            using (HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead))
+            using (HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken))
             {
                 string responseString = await response.Content.ReadAsStringAsync();
                 if (response.StatusCode == HttpStatusCode.NotFound)
