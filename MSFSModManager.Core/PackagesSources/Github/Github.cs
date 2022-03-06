@@ -53,6 +53,9 @@ namespace MSFSModManager.Core.PackageSources.Github
     {
         public GithubRepositoryNotFoundException(string message)
         : base(message) { }
+
+        public GithubRepositoryNotFoundException(string message, Exception innerException)
+        : base(message, innerException) { }
     }
     
     public class GithubRepository : IJsonSerializable
@@ -116,8 +119,12 @@ namespace MSFSModManager.Core.PackageSources.Github
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
             using (HttpResponseMessage response = await client.SendAsync(request, HttpCompletionOption.ResponseContentRead))
             {
-                response.EnsureSuccessStatusCode();
                 string responseString = await response.Content.ReadAsStringAsync();
+                if (response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new GithubRepositoryNotFoundException(responseString);
+                }
+                response.EnsureSuccessStatusCode();
                 return responseString;    
             }
         }
@@ -284,6 +291,62 @@ namespace MSFSModManager.Core.PackageSources.Github
             }
         }
 
+        public static async Task<string> GetPackageJsonString(
+            GithubRepository repository,
+            string commitSha,
+            HttpClient client,
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
+        {
+            string requestUrl = $"https://api.github.com/repos/{repository.Organisation}/{repository.Name}/git/trees/{commitSha}?recursive=1";
+            string responseString = await MakeRequest(requestUrl, client, cancellationToken);
+
+            var packageJsonRegex = new Regex(@"package\.json");
+
+            try
+            {
+                var jsonArray = JsonUtils.CastMember<JArray>(JObject.Parse(responseString), "tree");
+
+                // Fetch the package.json file (to extract the package id)
+                var packageJsonFiles = jsonArray
+                    .Select(fileToken => (JsonUtils.CastMember<string>(fileToken, "path"), JsonUtils.CastMember<string>(fileToken, "url")))
+                    .Where(fileToken => packageJsonRegex.IsMatch(fileToken.Item1))
+                    .OrderBy(fileToken => Path.GetFileName(fileToken.Item1))
+                    .Select(fileToken => fileToken.Item2)
+                    .ToArray();
+
+                if (packageJsonFiles.Length == 0) throw new FileNotFoundException("package.json file not found in release commit.");
+                
+                string packageJsonUrl = packageJsonFiles.First();
+                responseString = await MakeRequest(packageJsonUrl, client, cancellationToken);
+
+                JObject packageJsonResponseObject = JObject.Parse(responseString);
+                string packageJsonRaw = Encoding.UTF8.GetString(
+                    Convert.FromBase64String(JsonUtils.CastMember<string>(packageJsonResponseObject, "content"))
+                );
+
+                return packageJsonRaw;
+            }
+            catch (Exception e) when (e is JsonParsingException || e is JsonReaderException)
+            {
+                throw new GithubAPIException($"While reading package.json from repository {repository} for commit {commitSha}.", e);
+            }
+        }
+
+        /// <summary>
+        /// Fetches manifest file contents from the indicated commit or branch in a GitHub repository.
+        /// 
+        /// Searches the file tree associated with the commit for files matching manifest*.json;
+        /// This is to accomodate projects like the A32NX which has a manifest.base.json as a template to be completed
+        /// when a release is made. If several matches are encountered, it will pick the first file with the shortest file
+        /// name (thus preferring e.g. manifest.json over longer matches to the RegExp).
+        /// 
+        /// </summary>
+        /// <param name="repository"></param>
+        /// <param name="commitSha"></param>
+        /// <param name="client"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>A string containing the contents of the manifest*.json file.</returns>
         public static async Task<string> GetManifestString(
             GithubRepository repository,
             string commitSha,
@@ -297,7 +360,9 @@ namespace MSFSModManager.Core.PackageSources.Github
 
             try
             {
-                var manifestFiles = JsonUtils.CastMember<JArray>(JObject.Parse(responseString), "tree")
+                var jsonArray = JsonUtils.CastMember<JArray>(JObject.Parse(responseString), "tree");
+
+                var manifestFiles = jsonArray
                     .Select(fileToken => (JsonUtils.CastMember<string>(fileToken, "path"), JsonUtils.CastMember<string>(fileToken, "url")))
                     .Where(fileToken => manifestRegex.IsMatch(fileToken.Item1))
                     .OrderBy(fileToken => Path.GetFileName(fileToken.Item1))
@@ -309,10 +374,11 @@ namespace MSFSModManager.Core.PackageSources.Github
                 string manifestUrl = manifestFiles.First();
                 responseString = await MakeRequest(manifestUrl, client, cancellationToken);
 
-                JObject manifestObject = JObject.Parse(responseString);
+                JObject manifestResponseObject = JObject.Parse(responseString);
                 string manifestRaw = Encoding.UTF8.GetString(
-                    Convert.FromBase64String(JsonUtils.CastMember<string>(manifestObject, "content"))
+                    Convert.FromBase64String(JsonUtils.CastMember<string>(manifestResponseObject, "content"))
                 );
+
                 return manifestRaw;
             }
             catch (Exception e) when (e is JsonParsingException || e is JsonReaderException)

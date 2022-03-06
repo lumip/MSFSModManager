@@ -66,12 +66,29 @@ namespace MSFSModManager.Core.PackageSources.Github
             _client = client;
         }
 
-        public GithubReleasePackageSource(string packageId, GithubRepository repository, PackageCache cache, HttpClient client)
-            : this(packageId, repository, cache, client, new DefaultArtifactSelector())
-        { }
+        public static async Task<GithubReleasePackageSource> CreateFromRepository(
+            GithubRepository repository,
+            PackageCache cache,
+            HttpClient client,
+            IGithubReleaseArtifactSelector? artificatSelector = null,
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
+        {
+            if (artificatSelector == null) artificatSelector = new DefaultArtifactSelector();
 
-        public GithubReleasePackageSource(GithubRepository repository, PackageCache cache, HttpClient client)
-            : this(repository.Name, repository, cache, client) { }
+            try
+            {
+                string packageJsonRaw = await GithubAPI.GetPackageJsonString(repository, "HEAD", client, cancellationToken);
+                var packageDescription = PackageDescription.Parse(packageJsonRaw);
+                string packageId = packageDescription.Id;
+
+                return new GithubReleasePackageSource(packageId, repository, cache, client, artificatSelector);
+            }
+            catch (GithubRepositoryNotFoundException e)
+            {
+                throw new GithubRepositoryNotFoundException($"Could not find repository {repository}.", e);
+            }
+        }
 
         public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
         {

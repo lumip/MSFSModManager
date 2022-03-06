@@ -40,7 +40,7 @@ namespace MSFSModManager.Core
             _erroredManifests = new List<string>();
             SourceRegistry = packageSourceRegistry;
 
-
+            // TODO(lumip): Consider static async initialiser function that does this reading
             var installationDirectory = new DirectoryInfo(installationPath);
             foreach (var file in installationDirectory.GetFiles(PackageDirectoryLayout.ManifestFile, SearchOption.AllDirectories))
             {

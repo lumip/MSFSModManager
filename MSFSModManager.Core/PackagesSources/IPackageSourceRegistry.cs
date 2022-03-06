@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright 2021 Lukas <lumip> Prediger
 
-using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
 namespace MSFSModManager.Core.PackageSources
@@ -14,6 +15,8 @@ namespace MSFSModManager.Core.PackageSources
         IPackageSource Deserialize(string packageId, JToken serialized);
 
         IPackageSource ParseSourceStrings(string packageId, string[] sourceString);
+
+        Task<IPackageSource> ParseSourceStrings(string[] sourceString, CancellationToken cancellationToken = default(CancellationToken));
     }
 
 }

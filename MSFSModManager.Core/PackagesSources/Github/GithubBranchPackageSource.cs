@@ -33,6 +33,29 @@ namespace MSFSModManager.Core.PackageSources.Github
             _client = client;
         }
 
+        public static async Task<GithubBranchPackageSource> CreateFromRepository(
+            GithubRepository repository,
+            string branchName,
+            PackageCache cache,
+            HttpClient client,
+            CancellationToken cancellationToken = default(CancellationToken)
+        )
+        {
+            try
+            {
+                string packageJsonRaw = await GithubAPI.GetPackageJsonString(repository, branchName, client, cancellationToken);
+                var packageDescription = PackageDescription.Parse(packageJsonRaw);
+                string packageId = packageDescription.Id;
+                return new GithubBranchPackageSource(packageId, repository, branchName, cache, client);
+            }
+            catch (GithubRepositoryNotFoundException e)
+            {
+                throw new GithubRepositoryNotFoundException(
+                    $"Could not find a branch {branchName} in repository {repository} (or the repository could not be accessed).", e
+                );
+            }
+        }
+
         private List<GithubAPI.Commit>? _branchCommits;
 
         private async Task<IEnumerable<GithubAPI.Commit>> FetchCommits(
