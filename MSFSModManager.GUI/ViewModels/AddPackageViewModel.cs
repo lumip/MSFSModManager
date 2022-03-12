@@ -8,6 +8,8 @@ using System.Text;
 using System.Windows.Input;
 using ReactiveUI;
 using System.Reactive.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using MSFSModManager.Core;
 using MSFSModManager.Core.PackageSources;
@@ -93,14 +95,30 @@ namespace MSFSModManager.GUI.ViewModels
             _packageSourceString = packageSourceString;
             _packageId = packageId;
 
-            _packageIdTextColor = this.WhenAnyValue(x => x.PackageId, id => database.Contains(id) ? Brushes.Orange : Brushes.Black)
-                                    .ToProperty(this, x => x.PackageIdTextColor, out _packageIdTextColor);
-            _addButtonLabel = this.WhenAnyValue(x => x.PackageId, id => database.Contains(id) ? "Update" : "Add")
-                                    .ToProperty(this, x => x.AddButtonLabel, out _addButtonLabel);
-            _packageSource = this.WhenAnyValue(x => x.PackageId, x => x.PackageSourceString, ParsePackageSourceString)
-                                 .ToProperty(this, x => x.PackageSource, out _packageSource);
+            _packageIdTextColor = this
+                .WhenAnyValue(x => x.PackageId, id => database.Contains(id) ? Brushes.Orange : Brushes.Black)
+                .ToProperty(this, x => x.PackageIdTextColor, out _packageIdTextColor);
+            _addButtonLabel = this
+                .WhenAnyValue(x => x.PackageId, id => database.Contains(id) ? "Update" : "Add")
+                .ToProperty(this, x => x.AddButtonLabel, out _addButtonLabel);
 
-            var isValidSource = this.WhenAnyValue(x => x.PackageSource).Select(source => source != null);
+            _packageSource = this
+                .WhenAnyValue(x => x.PackageSourceString)
+                .ObserveOn(RxApp.TaskpoolScheduler)
+                .SelectMany(ParsePackageSourceString)
+                .ObserveOn(RxApp.MainThreadScheduler)
+                .ToProperty(this, x => x.PackageSource, out _packageSource);
+
+            var isValidSource = this
+                .WhenAnyValue(x => x.PackageSource)
+                .Select(source => source != null);
+
+            this.WhenAnyValue(x => x.PackageSource).Subscribe(packageSource => {
+                if (packageSource != null)
+                {
+                    PackageId = packageSource.PackageId;
+                }
+            });
 
             AddPackageCommand = ReactiveCommand.Create(
                 () => new AddPackageDialogReturnValues(PackageSource, MarkForInstallation, InstallAfterAdding),
@@ -111,22 +129,20 @@ namespace MSFSModManager.GUI.ViewModels
             );
         }
 
-        private IPackageSource? ParsePackageSourceString(string packageId, string combinedPackageSourceString)
+        private async Task<IPackageSource?> ParsePackageSourceString(string combinedPackageSourceString, CancellationToken ct)
         {
-            if (string.IsNullOrWhiteSpace(packageId) || string.IsNullOrWhiteSpace(combinedPackageSourceString)) return null;
+            if (string.IsNullOrWhiteSpace(combinedPackageSourceString)) return null;
             string[] packageSourceStrings = combinedPackageSourceString.Trim().Split(' ');
+
+            if (!_packageSourceRegistry.IsWellFormedSourceString(packageSourceStrings)) return null;
+
             try
             {
-                var res =  _packageSourceRegistry.ParseSourceStrings(packageId, packageSourceStrings);
+                IPackageSource res = await _packageSourceRegistry.ParseSourceStrings(packageSourceStrings, ct);
                 return res;
             }
-            catch (ArgumentException)
+            catch (Exception)
             {
-                return null;
-            }
-            catch (Exception e)
-            {
-                GlobalLogger.Log(LogLevel.Error, $"Unexpected error while parsing package source:\n{e.Message}");
                 return null;
             }
         }

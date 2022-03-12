@@ -23,6 +23,7 @@
         <TextBlock TextWrapping="Wrap">
 A source URL gives the location from which the package can be obtained.
 For example, it may be the URL/link to a Github repository, such as https://github.com/lumip/MSFSModManager, in which case the software looks for releases on the Github repository page. If you want to use the latest development version, you can append the @ symbol followed by the branch name, e.g, '@master'.
+In most cases, the package id will be retrieved automatically from the source URL. If not, enter a unique id by which the package can be identified.
         </TextBlock>
         <TextBox Watermark="Package Id" HorizontalAlignment="Stretch" Text="{Binding PackageId}" Foreground="{Binding PackageIdTextColor}" />
         <TextBox Watermark="Source URL" HorizontalAlignment="Stretch" Text="{Binding PackageSourceString}" />
