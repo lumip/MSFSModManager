@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021-2022 Lukas <lumip> Prediger
 
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +16,8 @@ namespace MSFSModManager.Core.PackageSources
 
         IPackageSource ParseSourceStrings(string packageId, string[] sourceString);
 
+        bool IsWellFormedSourceString(string[] str);
+        
         Task<IPackageSource> ParseSourceStrings(string[] sourceString, CancellationToken cancellationToken = default(CancellationToken));
     }
 

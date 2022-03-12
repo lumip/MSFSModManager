@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021-2022 Lukas <lumip> Prediger
 
 using System;
 using System.Net.Http;
@@ -50,6 +50,71 @@ namespace MSFSModManager.Core.PackageSources
             obj.Add("type", source.GetType().Name);
             obj.Add("data", source.Serialize());
             return obj;
+        }
+
+        public bool IsWellFormedSourceString(string[] sourceString)
+        {
+            if (sourceString.Length == 0 || string.IsNullOrWhiteSpace(sourceString[0])) return false;
+
+            string uri = sourceString[0];
+            if (uri.Contains("github.com"))
+            {
+                if (uri.Contains('@'))
+                {
+                    try
+                    {
+                        string[] uriSplits = uri.Split('@', 2);
+                        GithubRepository.FromUrl(uriSplits[0]);
+
+                        string branch = uriSplits[1];
+                        return !string.IsNullOrWhiteSpace(branch);
+                    }
+                    catch (ArgumentException)
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        GithubRepository.FromUrl(uri);
+                    }
+                    catch (ArgumentException)
+                    {
+                        return false;
+                    }
+
+                    if (sourceString.Length > 1)
+                    {
+                        try
+                        {
+                            new RegexArtifactSelector(sourceString[1]);
+                        }
+                        catch (Exception)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+
+            try
+            {
+                if (new Uri(uri).IsFile)
+                {
+                    if (uri.EndsWith(".zip"))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            return false;
         }
 
         public IPackageSource ParseSourceStrings(string packageId, string[] sourceString)
