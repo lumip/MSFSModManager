@@ -171,8 +171,10 @@ namespace MSFSModManager.GUI.ViewModels
         public async Task DoInstall()
         {
             InstallationProgressList!.IsProgressVisible = true;
-            IPackageSourceRepository sourceRepository = new PackageDatabaseSource(_database.Database);
-
+            IPackageSourceRepository sourceRepository = new HiddenBasePackageSourceRepositoryDecorator(
+                new PackageDatabaseSource(_database.Database)
+            );
+            
             List<Task> installationTasks = new List<Task>(_toInstallPackages!.Count());
 
             GlobalLogger.Log(LogLevel.Info, "Installing packages:");
@@ -180,11 +182,11 @@ namespace MSFSModManager.GUI.ViewModels
             {
                 GlobalLogger.Log(LogLevel.Info, $"{package.Id,-60} {package.Version,14}");
 
-                IPackageInstaller installer = sourceRepository.GetSource(package.Id).GetInstaller(package.SourceVersion);
                 Task installationTask = Task.Run(
-                    async () => await _database.InstallPackage(
-                        installer, (IProgressMonitor)InstallationProgressList!, _cancellationTokenSource.Token
-                    )
+                    async () => {
+                        IPackageInstaller installer = sourceRepository.GetSource(package.Id).GetInstaller(package.SourceVersion);
+                        await _database.InstallPackage(installer, (IProgressMonitor)InstallationProgressList!, _cancellationTokenSource.Token);
+                    }
                 );
                 installationTasks.Add(installationTask);
                 InstallationProgressList!.SetInstallationTask(package.Id, installationTask);

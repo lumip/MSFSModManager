@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021-2022 Lukas <lumip> Prediger
 
 using System;
 using System.Net;
@@ -101,6 +101,11 @@ namespace MSFSModManager.Core.PackageSources.Github
             string repositoryName = (string)obj["name"]!;
 
             return new GithubRepository(organisation, repositoryName);
+        }
+
+        public override string ToString()
+        {
+            return $"{Organisation}/{Name}";
         }
     }
 
