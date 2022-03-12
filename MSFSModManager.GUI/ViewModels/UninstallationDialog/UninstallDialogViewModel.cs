@@ -109,7 +109,12 @@ namespace MSFSModManager.GUI.ViewModels
             }
 
             UninstallationProgressList = new PackageUninstallationProgressViewModel(
-                dependentPackages.Select(pdn => _database.GetInstalledPackage(pdn.PackageId).Package).Concat(_removalCandidates)
+                dependentPackages
+                    .Select(pdn => new UninstallingPackageViewModel(
+                        _database.GetInstalledPackage(pdn.PackageId).Package,
+                        pdn.Children.FirstOrDefault()?.PackageId)
+                    )
+                    .Concat(_removalCandidates.Select(p => new UninstallingPackageViewModel(p, null)))
             );
             UninstallationProgressList.IsProgressVisible = false;
 
@@ -139,6 +144,7 @@ namespace MSFSModManager.GUI.ViewModels
                     GlobalLogger.Log(LogLevel.Error, $"Error while uninstalling {pvm.Id}: {e.Message}");
                     pvm.CurrentProgress = 0;
                     pvm.State = UninstallationState.Faulted;
+                    break;
                 }
 
 

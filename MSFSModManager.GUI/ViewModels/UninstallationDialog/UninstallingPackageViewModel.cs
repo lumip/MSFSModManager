@@ -21,6 +21,8 @@ namespace MSFSModManager.GUI.ViewModels
     {
         public string Id => Package.Id;
 
+        public string DependingOnId { get; }
+
         private readonly ObservableAsPropertyHelper<IBrush> _statusLabelColor;
         public IBrush StatusLabelColor => _statusLabelColor.Value;
 
@@ -56,9 +58,11 @@ namespace MSFSModManager.GUI.ViewModels
 
         public InstalledPackage Package { get; }
 
-        public UninstallingPackageViewModel(InstalledPackage package)
+        public UninstallingPackageViewModel(InstalledPackage package, string? dependingOn = null)
         {
             Package = package;
+            DependingOnId = dependingOn != null ? dependingOn : "";
+
             _isIndeterminate = this
                 .WhenAnyValue(x => x.State)
                 .Select(s => s == UninstallationState.Pending)

@@ -13,12 +13,22 @@
     <Grid>
         <DataGrid 
                 Items="{Binding UninstallingPackages}"
-                HeadersVisibility="None"
                 AutoGenerateColumns="False"
                 CanUserResizeColumns="False"
                 CanUserSortColumns="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
+                <DataGridTemplateColumn Width="Auto" Header="Depends on">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock
+                                Text="{Binding DependingOnId}"
+                                TextAlignment="Right"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTemplateColumn
                         Header="Progress"
                         Width="200"

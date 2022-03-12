@@ -30,12 +30,12 @@ namespace MSFSModManager.GUI.ViewModels
             set => this.RaiseAndSetIfChanged(ref _isProgressVisible, value);
         }
 
-        public PackageUninstallationProgressViewModel(IEnumerable<InstalledPackage> packagesToRemove)
+        public PackageUninstallationProgressViewModel(IEnumerable<UninstallingPackageViewModel> packagesToRemove)
         {
             _isProgressVisible = true;
             
             _packagesToRemove = new SourceCache<UninstallingPackageViewModel, string>(p => p.Id);
-            _packagesToRemove.AddOrUpdate(packagesToRemove.Select(m => new UninstallingPackageViewModel(m)));
+            _packagesToRemove.AddOrUpdate(packagesToRemove);
 
             _dynamicData = _packagesToRemove
                                         .Connect()
