@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2021 Lukas <lumip> Prediger
+// Copyright 2021-2022 Lukas <lumip> Prediger
 
 using System;
 using System.Collections.Generic;
@@ -19,11 +19,15 @@ namespace MSFSModManager.Core.PackageSources
         public LocallyInstalledPackageSource(InstalledPackage installedPackage)
         {
             _installedPackage = installedPackage;
-            if (_installedPackage.Manifest == null) throw new ArgumentException("Installed package must have a manifest.", nameof(installedPackage));
+            if (_installedPackage.Manifest == null)
+                throw new ArgumentException("Installed package must have a manifest.", nameof(installedPackage));
         }
 
         public override IPackageInstaller GetInstaller(IVersionNumber versionNumber)
         {
+            var versionBounds = new VersionBounds(versionNumber);
+            if (_installedPackage.Version == null || !versionBounds.CheckVersion(_installedPackage.Version))
+                throw new VersionNotAvailableException(_installedPackage.Id, versionBounds);
             return new NoOpPackageInstaller(_installedPackage.Manifest!);
         }
 
