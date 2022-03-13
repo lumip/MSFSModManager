@@ -32,11 +32,17 @@ namespace MSFSModManager.Core
 
         public IPackageSource GetSource(string packageId)
         {
-            if (packageId.StartsWith("fs-base"))
+            try
             {
+                // If our base repository can get us a package source, we want to return it in any case.
+                return _repository.GetSource(packageId);
+            }
+            catch (PackageNotAvailableException)
+            {
+                // There as some "fs-base" packages which are hidden, i.e., they are not in the database.
+                // We just have to assume they are there and return a HiddenBasePackageSource in this case.
                 return new HiddenBasePackageSource(packageId);
             }
-            return _repository.GetSource(packageId);
         }
 
         public bool HasSource(string packageId)

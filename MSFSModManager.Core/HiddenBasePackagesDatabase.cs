@@ -73,7 +73,7 @@ namespace MSFSModManager.Core
                 }
                 catch (PackageNotInstalledException)
                 {
-                    throw new NotSupportedException($"Cannot get installation info for fs-base packages.");
+                    throw new PackageNotAvailableException(packageId);
                 }
             }
             return _database.GetInstalledPackage(packageId);
