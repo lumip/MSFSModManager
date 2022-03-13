@@ -1,6 +1,6 @@
 ﻿<!--
     SPDX-License-Identifier: GPL-3.0-or-later
-    Copyright 2021 Lukas <lumip> Prediger
+    Copyright 2021,2022 Lukas <lumip> Prediger
 -->
 
 <Project Sdk="Microsoft.NET.Sdk">
@@ -9,8 +9,11 @@
     <TargetFramework>net5.0</TargetFramework>
     <Nullable>enable</Nullable>
     <LangVersion>8</LangVersion>
-    <AssemblyName>MSFSModManager.GUI</AssemblyName>
+    <AssemblyName>fsmodm.GUI</AssemblyName>
     <RootNamespace>MSFSModManager.GUI</RootNamespace>
+    <Version>0.1.0</Version>
+    <Copyright>Copyright © 2022 Lukas Prediger</Copyright>
+    <Authors>Lukas "lumip" Prediger</Authors>
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Models\" />

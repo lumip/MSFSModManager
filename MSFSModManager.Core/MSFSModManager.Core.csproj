@@ -1,6 +1,6 @@
 <!--
     SPDX-License-Identifier: GPL-3.0-or-later
-    Copyright 2021 Lukas <lumip> Prediger
+    Copyright 2021,2022 Lukas <lumip> Prediger
 -->
 
 <Project Sdk="Microsoft.NET.Sdk">
@@ -11,6 +11,9 @@
     <Nullable>enable</Nullable>
     <RootNamespace>MSFSModManager.Core</RootNamespace>
     <LangVersion>8.0</LangVersion>
+    <Version>0.1.0</Version>
+    <Copyright>Copyright © 2022 Lukas Prediger</Copyright>
+    <Authors>Lukas "lumip" Prediger</Authors>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
