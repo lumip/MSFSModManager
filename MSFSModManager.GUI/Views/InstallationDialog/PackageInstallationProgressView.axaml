@@ -16,7 +16,8 @@
                 HeadersVisibility="None"
                 AutoGenerateColumns="False"
                 CanUserResizeColumns="False"
-                CanUserSortColumns="False">
+                CanUserSortColumns="False"
+                HorizontalScrollBarVisibility="Disabled">
             <DataGrid.Columns>
                 <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
                 <DataGridTextColumn Width="Auto" Header="Version Bounds" Binding="{Binding Version}" />

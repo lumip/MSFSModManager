@@ -15,7 +15,8 @@
                 Items="{Binding UninstallingPackages}"
                 AutoGenerateColumns="False"
                 CanUserResizeColumns="False"
-                CanUserSortColumns="False">
+                CanUserSortColumns="False"
+                HorizontalScrollBarVisibility="Disabled">
             <DataGrid.Columns>
                 <DataGridTextColumn Width="*" Header="Package Id" Binding="{Binding Id}" />
                 <DataGridTemplateColumn Width="Auto" Header="Depends on">
