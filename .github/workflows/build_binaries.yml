@@ -1,0 +1,43 @@
+
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright 2021 Lukas <lumip> Prediger
+
+name: Build Binaries
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ "*stable", ]
+    tags: [ "*rc*" ]
+
+jobs:
+  build-binaries:
+    runs-on: windows-latest
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 5.0.x
+      - name: Build single file executables
+        run: dotnet publish -r win-x64 -c Release --self-contained false /p:PublishSingleFile=true
+      - uses: actions/upload-artifact@v3
+        with:
+          name: gui-binaries
+          path: |
+            MSFSModManager.GUI/bin/Release/net5.0/win-x64/publish/*.exe
+            MSFSModManager.GUI/bin/Release/net5.0/win-x64/publish/*.dll
+            MSFSModManager.GUI/bin/Release/net5.0/win-x64/publish/*.config
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cli-binaries
+          path: |
+            MSFSModManager.CLI/bin/Release/netcoreapp3.1/win-x64/publish/*.exe
+            MSFSModManager.CLI/bin/Release/netcoreapp3.1/win-x64/publish/*.dll
+            MSFSModManager.CLI/bin/Release/netcoreapp3.1/win-x64/publish/*.config
+          if-no-files-found: error
+          retention-days: 14
