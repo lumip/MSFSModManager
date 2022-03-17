@@ -21,9 +21,10 @@ jobs:
       - uses: actions/setup-dotnet@v1
         with:
           dotnet-version: 5.0.x
-      - name: Build single file executables
-        run: dotnet publish -r win-x64 -c Release --self-contained false /p:PublishSingleFile=true
-      - uses: actions/upload-artifact@v3
+      - name: Build GUI as single file executable
+        run: dotnet publish -r win-x64 -c Release --self-contained false /p:PublishSingleFile=true ./MSFSModManager.GUI/
+      - name: Upload GUI binaries.
+        uses: actions/upload-artifact@v3
         with:
           name: gui-binaries
           path: |
@@ -32,7 +33,10 @@ jobs:
             MSFSModManager.GUI/bin/Release/net5.0/win-x64/publish/*.config
           if-no-files-found: error
           retention-days: 14
-      - uses: actions/upload-artifact@v3
+      - name: Build CLI as single file executable
+        run: dotnet publish -r win-x64 -c Release --self-contained false /p:PublishSingleFile=true ./MSFSModManager.CLI/
+      - name: Upload CLI binaries.
+        uses: actions/upload-artifact@v3
         with:
           name: cli-binaries
           path: |
