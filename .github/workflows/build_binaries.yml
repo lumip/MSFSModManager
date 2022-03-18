@@ -1,14 +1,16 @@
 
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Copyright 2021 Lukas <lumip> Prediger
+# Copyright 2022 Lukas <lumip> Prediger
 
 name: Build Binaries
 
 on:
+  workflow_call:
   workflow_dispatch:
+  push:
+    branches: [ "master" ]
   pull_request:
-    branches: [ "*stable", ]
-    tags: [ "*rc*" ]
+    branches: [ "*stable" ]
 
 jobs:
   build-binaries:
@@ -26,7 +28,7 @@ jobs:
       - name: Upload GUI binaries.
         uses: actions/upload-artifact@v3
         with:
-          name: gui-binaries
+          name: fsmodm-gui
           path: |
             MSFSModManager.GUI/bin/Release/net5.0/win-x64/publish/*.exe
             MSFSModManager.GUI/bin/Release/net5.0/win-x64/publish/*.dll
@@ -38,7 +40,7 @@ jobs:
       - name: Upload CLI binaries.
         uses: actions/upload-artifact@v3
         with:
-          name: cli-binaries
+          name: fsmodm-cli
           path: |
             MSFSModManager.CLI/bin/Release/netcoreapp3.1/win-x64/publish/*.exe
             MSFSModManager.CLI/bin/Release/netcoreapp3.1/win-x64/publish/*.dll
