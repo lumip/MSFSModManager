@@ -65,7 +65,7 @@ namespace MSFSModManager.GUI.ViewModels
 
             _isIndeterminate = this
                 .WhenAnyValue(x => x.State)
-                .Select(s => s == UninstallationState.Pending)
+                .Select(s => s == UninstallationState.Pending || s == UninstallationState.Uninstalling)
                 .ToProperty(this, x => x.IsIndeterminate, out _isIndeterminate);
             
             _statusLabel = this
