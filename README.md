@@ -4,20 +4,26 @@ This project aims to provide an easy and unified way of installing and updating 
 
 ## Current state:
 
-    - Command line interface only (a graphical user interface will be added later)
+    - Graphical user interface and command line interface applications
     - Lists all installed mods/packages
     - Installing from GitHub releases or branches possible
     - Checks and downloads dependencies for packages during installation (if a package source for the dependency is known, installation will abort if dependencies cannot be satisfied)
-    - Uninstalling packages possible
+    - Uninstalling packages possible (checking and uninstalling for depending package as well)
 
 ### Roadmap
 
-    - Adding GUI application for easier usability
+    - Automatic batch updating of packages with newer releases
     - Supporting popular mod database websites as package sources
 
 ### Known issues / missing features
 
     - dependency resolution only considers packages to be installed and does not check whether updating dependencies might break installed packages
+
+## GUI Usage
+
+The graphical user interface executable is built from the `MSFSModManager.GUI` project as `fsmodm.gui`. Refer to the quick start guide for instructions:
+
+[Quick Start Guide](https://raw.githubusercontent.com/wiki/lumip/MSFSModManager/Quick%20Start%20Guide.pdf)
 
 ## CLI Usage
 
@@ -36,11 +42,13 @@ Lists all currently installed community packages. Optional arguments are:
 ### Add/Remove installation source for a package
 
 ```
-fsmodm add-source <PackageId> <SourceURL> [<SourceOptions>]
+fsmodm add-source [<PackageId>] <SourceURL> [<SourceOptions>]
 fsmodm remove-source <PackageId>
 ```
 
-Adds/removes a source from which packages can be installed. `PackageId` is a user-chosen identifier for the package (and will be used as the folder name for the package in the Community mod folder of MSFS). `SourceURL` specifies the URL from which the package (and package metadata) are obtained and `SourceOptions` are additional arguments depending on the source type.
+Adds/removes a source from which packages can be installed. 
+`PackageId` is an identifier for the package (and will be used as the folder name for the package in the Community mod folder of MSFS). It is an optional argument as the program will usually detect it automatically from the package source. However the user can choose to specify it explicitly if they so choose, e.g., to overwrite the automatically detected id or in case automatic detection fails.
+ `SourceURL` specifies the URL from which the package (and package metadata) are obtained and `SourceOptions` are additional arguments depending on the source type.
 
 Current source types are:
 
@@ -66,9 +74,7 @@ Uses a local ZIP file of a package as a package installation source. In this cas
 
 Example: `fsmodm add-source B78XH Downloads\B78XH-v0.1.12.zip`.
 
-**Note**: This will automatically locate the relative path of the `manifest.json` file within the archive and install
-all files under that path during package installation, i.e., it will ignore all files in the archive that are not under
-the same directory as the manifest file and remove path prefixes.
+**Note**: This will automatically locate the relative path of the `manifest.json` file within the archive and install all files under that path during package installation, i.e., it will ignore all files in the archive that are not under the same directory as the manifest file and remove path prefixes.
 
 ### Install/Uninstall a package
 
@@ -78,13 +84,12 @@ fsmodm uninstall <PackageId>
 ```
 
 Installs/removes a package (mod). This requires an installation source to have been added for the package identified by `PackageId`.
-Installation will always select to last compatible available version of the package. If the package is already installed,
-it will be replaced if a newer version is found.
+Installation will always select to last compatible available version of the package. If the package is already installed, it will be replaced if a newer version is found.
 
 ### Install package without storing package source
 
 ```
-fsmodm install <PackageId> <SourceURL> [<SourceOptions>]
+fsmodm install [<PackageId>] <SourceURL> [<SourceOptions>]
 ```
 
 Installs a package (mod) from the given installation source without persisting information about the source.
